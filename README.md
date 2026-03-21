@@ -1,5 +1,7 @@
 # NovaQuote
 
+Open-source Django application for quoting, invoicing, orders, and CRM. **License:** [AGPL-3.0](LICENSE).
+
 NovaQuote is an open-source Django application for quoting and order processing. It supports product catalogs with configurable options, proposals (quotes), **customer invoices**, and purchase **orders** with per-item ordering/delivery tracking.
 
 ### Sales flow: proposal → invoice → order
@@ -127,4 +129,3 @@ On **supplier / client / lead** organization detail pages, an **organization cha
 **Network** partners can be linked to multiple suppliers and clients via **Organization network links** (buttons **Link company** on the network partner’s page, **Link network partner** on supplier/client/lead pages). The same partner can have many links; each pair is unique.
 
 Manage advanced bulk operations under **Admin → Organizations / Persons / …**.
-

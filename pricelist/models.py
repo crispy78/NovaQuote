@@ -126,9 +126,9 @@ def _hex_to_rgb_triplet(hex_str):
 
 def _darken_hex(hex_str, factor):
     """Return a darker hex colour by multiplying RGB by factor (0–1)."""
-    hex_str = (hex_str or "#008080").strip()
+    hex_str = (hex_str or "#C19A6B").strip()
     if not hex_str.startswith("#") or len(hex_str) not in (4, 7):
-        return "#006666"
+        return "#8B6F52"
     try:
         h = hex_str[1:]
         if len(h) == 3:
@@ -140,7 +140,7 @@ def _darken_hex(hex_str, factor):
         b = max(0, min(255, int(b * factor)))
         return f"#{r:02x}{g:02x}{b:02x}"
     except (ValueError, TypeError):
-        return "#006666"
+        return "#8B6F52"
 
 
 def price_decimal_places(rounding_str):
@@ -313,7 +313,10 @@ class GeneralSettings(models.Model):
     COLOR_SCHEME_TEAL = "teal"
     COLOR_SCHEME_BLACK = "black"
     COLOR_SCHEME_RED = "red"
+    # Default: warm gold / brown from the bundled NovaQuote logo
+    COLOR_SCHEME_NOVAQUOTE_LOGO = "novaquote_logo"
     COLOR_SCHEME_CHOICES = [
+        (COLOR_SCHEME_NOVAQUOTE_LOGO, _("NovaQuote logo (warm gold / brown)")),
         (COLOR_SCHEME_ORANGE, _("Orange (#FFA726)")),
         (COLOR_SCHEME_NAVY, _("Navy blue (#283593)")),
         (COLOR_SCHEME_TEAL, _("Teal (#008080)")),
@@ -322,6 +325,7 @@ class GeneralSettings(models.Model):
     ]
     # (primary, hover) — hover is a darker companion for links/buttons on light backgrounds
     COLOR_SCHEME_PALETTES = {
+        COLOR_SCHEME_NOVAQUOTE_LOGO: ("#C19A6B", "#8B6F52"),
         COLOR_SCHEME_ORANGE: ("#FFA726", "#F57C00"),
         COLOR_SCHEME_NAVY: ("#283593", "#1A237E"),
         COLOR_SCHEME_TEAL: ("#008080", "#006666"),
@@ -332,13 +336,13 @@ class GeneralSettings(models.Model):
     color_scheme = models.CharField(
         max_length=32,
         choices=COLOR_SCHEME_CHOICES,
-        default=COLOR_SCHEME_TEAL,
+        default=COLOR_SCHEME_NOVAQUOTE_LOGO,
         verbose_name=_("Color scheme"),
         help_text=_("Brand colour for buttons and links on the frontend and in admin."),
     )
     primary_color = models.CharField(
         max_length=9,
-        default="#008080",
+        default="#C19A6B",
         verbose_name=_("Primary colour (legacy)"),
         help_text=_("Synced from the selected theme for compatibility; not shown in admin."),
     )
@@ -386,7 +390,7 @@ class GeneralSettings(models.Model):
         palette = self.COLOR_SCHEME_PALETTES.get(self.color_scheme)
         if palette:
             return palette[0]
-        return (self.primary_color or "#008080").strip()
+        return (self.primary_color or "#C19A6B").strip()
 
     @property
     def effective_primary_hover(self) -> str:
@@ -402,7 +406,7 @@ class GeneralSettings(models.Model):
         alpha = 0.12
         t = _hex_to_rgb_triplet(self.effective_primary_color)
         if not t:
-            return f"rgba(0, 128, 128, {alpha})"
+            return f"rgba(193, 154, 107, {alpha})"
         r, g, b = t
         return f"rgba({r},{g},{b},{alpha})"
 
@@ -428,9 +432,9 @@ def get_general_settings():
             rounding="0.01",
             number_format=GeneralSettings.NUMBER_FORMAT_EUROPE,
             language=GeneralSettings.LANGUAGE_EN,
-            color_scheme=GeneralSettings.COLOR_SCHEME_TEAL,
-            primary_color="#008080",
-            primary_color_hover="#006666",
+            color_scheme=GeneralSettings.COLOR_SCHEME_NOVAQUOTE_LOGO,
+            primary_color="#C19A6B",
+            primary_color_hover="#8B6F52",
         )
     return inst
 
@@ -1548,27 +1552,31 @@ class Invoice(models.Model):
         verbose_name=_("Proposal"),
     )
     STATUS_DRAFT = "draft"
-    STATUS_SENT = "sent"
+    STATUS_UNPAID = "unpaid"
+    STATUS_PARTIALLY_PAID = "partially_paid"
     STATUS_PAID = "paid"
     STATUS_CANCELLED = "cancelled"
     STATUS_CHOICES = [
         (STATUS_DRAFT, _("Draft")),
-        (STATUS_SENT, _("Sent")),
+        (STATUS_UNPAID, _("Unpaid")),
+        (STATUS_PARTIALLY_PAID, _("Partially paid")),
         (STATUS_PAID, _("Paid")),
         (STATUS_CANCELLED, _("Cancelled")),
     ]
     status = models.CharField(
-        max_length=16,
+        max_length=20,
         choices=STATUS_CHOICES,
         default=STATUS_DRAFT,
         verbose_name=_("Status"),
-        help_text=_("Draft: internal. Sent: issued to the customer (required before creating an order)."),
+        help_text=_(
+            "Draft: internal. Unpaid: issued to the customer. Record payments to track partial or full payment."
+        ),
     )
     invoice_number = models.CharField(
         max_length=64,
         blank=True,
         verbose_name=_("Invoice number"),
-        help_text=_("Optional display number; can be assigned when the invoice is sent."),
+        help_text=_("Optional display number; can be assigned when the invoice is issued."),
     )
     grand_total_snapshot = models.DecimalField(
         max_digits=14,
@@ -1586,7 +1594,7 @@ class Invoice(models.Model):
         null=True,
         blank=True,
         verbose_name=_("Issued at"),
-        help_text=_("Set when the invoice is marked as sent."),
+        help_text=_("Set when the invoice is marked as issued."),
     )
     due_date = models.DateField(
         null=True,
@@ -1615,14 +1623,60 @@ class Invoice(models.Model):
         return f"{num} ({self.get_status_display()})"
 
 
+class InvoicePayment(models.Model):
+    """Customer payment recorded against an issued invoice (partial or full)."""
+
+    uuid = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        unique=True,
+        verbose_name=_("UUID"),
+        help_text=_("Stable identifier for this payment row."),
+    )
+    invoice = models.ForeignKey(
+        Invoice,
+        on_delete=models.CASCADE,
+        related_name="payments",
+        verbose_name=_("Invoice"),
+    )
+    amount = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        verbose_name=_("Amount"),
+    )
+    paid_at = models.DateTimeField(
+        verbose_name=_("Paid at"),
+        help_text=_("When the payment was received."),
+    )
+    note = models.TextField(blank=True, verbose_name=_("Note"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="recorded_invoice_payments",
+        verbose_name=_("Recorded by"),
+    )
+
+    class Meta:
+        db_table = "catalogus_invoicepayment"
+        ordering = ("-paid_at", "-pk")
+        verbose_name = _("Invoice payment")
+        verbose_name_plural = _("Invoice payments")
+
+    def __str__(self) -> str:
+        return f"{self.amount} ({self.invoice_id})"
+
+
 class Order(models.Model):
     """
     Order created from a saved proposal. One order per proposal.
-    Tracks high-level status (draft → sent → completed/cancelled) and an optional note.
+    Tracks high-level status (draft → sent → paid / completed / cancelled) and an optional note.
     Line-level and item-level tracking (ordered at, expected delivery, delivered at) lives on OrderLineItem.
     """
 
-    # Lifecycle: draft (just created), sent (to suppliers), completed (all delivered), cancelled
+    # Lifecycle: draft, sent (to suppliers), paid (customer invoice settled), completed, cancelled
     uuid = models.UUIDField(
         default=uuid.uuid4,
         editable=False,
@@ -1633,11 +1687,13 @@ class Order(models.Model):
 
     STATUS_DRAFT = "draft"
     STATUS_SENT = "sent"
+    STATUS_PAID = "paid"
     STATUS_COMPLETED = "completed"
     STATUS_CANCELLED = "cancelled"
     STATUS_CHOICES = [
         (STATUS_DRAFT, _("Draft")),
         (STATUS_SENT, _("Sent")),
+        (STATUS_PAID, _("Paid")),
         (STATUS_COMPLETED, _("Completed")),
         (STATUS_CANCELLED, _("Cancelled")),
     ]
@@ -1668,7 +1724,9 @@ class Order(models.Model):
         choices=STATUS_CHOICES,
         default=STATUS_DRAFT,
         verbose_name=_("Status"),
-        help_text=_("Draft: not yet sent. Sent: with supplier(s). Completed: all delivered. Cancelled."),
+        help_text=_(
+            "Draft: not yet sent to suppliers. Sent: with supplier(s). Paid: customer invoice fully paid (usually automatic). Completed: all delivered. Cancelled."
+        ),
     )
     note = models.TextField(
         blank=True,
@@ -1676,6 +1734,7 @@ class Order(models.Model):
         help_text=_("Optional note for this order."),
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated at"))
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

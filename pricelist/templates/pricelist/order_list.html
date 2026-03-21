@@ -38,6 +38,7 @@
                     <td class="px-4 py-3">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium
                             {% if order.status == 'completed' %}bg-emerald-100 text-emerald-800
+                            {% elif order.status == 'paid' %}bg-teal-100 text-teal-800
                             {% elif order.status == 'cancelled' %}bg-slate-100 text-slate-700
                             {% elif order.status == 'sent' %}bg-sky-100 text-sky-800
                             {% else %}bg-amber-100 text-amber-800{% endif %}">
@@ -54,7 +55,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="px-4 py-8 text-center text-slate-500">{% trans "No orders yet. Save a calculation, create an invoice, mark it as sent, then create an order from the calculation or invoice page." %}</td>
+                    <td colspan="5" class="px-4 py-8 text-center text-slate-500">{% trans "No orders yet. Save a calculation, create an invoice, mark it as issued, then create an order from the calculation or invoice page." %}</td>
                 </tr>
                 {% endfor %}
             </tbody>

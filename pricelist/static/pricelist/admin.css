@@ -70,7 +70,7 @@
 #nav-sidebar {
   flex: 0 0 300px !important;
   min-width: 300px !important;
-  background-color: #fdf2f8 !important; /* soft variant */
+  background-color: #f0ebe3 !important; /* warm cream (NovaQuote logo palette) */
 }
 
 .main.shifted > #nav-sidebar + .content {
@@ -160,7 +160,7 @@ input[type="submit"]:hover {
 }
 
 .submit-row a.deletelink:hover {
-  background-color: #fde7f3 !important;
+  background-color: #ebe4da !important;
 }
 
 /* Hide dark/light mode toggle (we use fixed PMS226c styling) */

@@ -1,3 +1,8 @@
+/*
+ * NovaQuote logo palette (defaults in General settings → NovaQuote logo):
+ * page background #FDFBF2, ink #4D3B2A, brand gold #C19A6B, hover brown #8B6F52, olive accent #7E855C.
+ * See :root in pricelist/base.html and admin/base_site.html.
+ */
 /* Logo in header: max size fits main nav bar (min-h-32 + header py-2) */
 .logo-header {
   max-height: 120px;

@@ -14,7 +14,12 @@
       :root {
         --brand: {{ general_settings.effective_primary_color }};
         --brand-hover: {{ general_settings.effective_primary_hover }};
+        --nq-page-bg: #fdfbf2;
+        --nq-ink: #4d3b2a;
+        --nq-accent-green: #7e855c;
+        --nq-brown-mid: #8b6f52;
       }
+      body { background-color: var(--nq-page-bg) !important; color: var(--nq-ink); }
     </style>
 {% endblock %}
 

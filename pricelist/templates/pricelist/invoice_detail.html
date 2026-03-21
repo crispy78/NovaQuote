@@ -13,7 +13,8 @@
             <p class="mt-1 text-slate-600">
                 <span class="inline-flex px-2 py-0.5 rounded text-xs font-medium
                     {% if invoice.status == 'paid' %}bg-emerald-100 text-emerald-800
-                    {% elif invoice.status == 'sent' %}bg-sky-100 text-sky-800
+                    {% elif invoice.status == 'partially_paid' %}bg-violet-100 text-violet-800
+                    {% elif invoice.status == 'unpaid' %}bg-sky-100 text-sky-800
                     {% elif invoice.status == 'cancelled' %}bg-slate-100 text-slate-600
                     {% else %}bg-amber-100 text-amber-800{% endif %}">{{ invoice.get_status_display }}</span>
                 {% if invoice.issued_at %}
@@ -34,7 +35,7 @@
     {% elif can_create_order %}
     <div class="mb-6 flex flex-wrap items-center gap-3">
         <a href="{% url 'pricelist:order_create' identifier=proposal.uuid %}" class="rounded-md border border-[var(--brand)] bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:opacity-90">{% trans "Create order" %}</a>
-        <span class="text-sm text-slate-600">{% trans "Purchase order for suppliers (after the invoice is sent)." %}</span>
+        <span class="text-sm text-slate-600">{% trans "Purchase order for suppliers (after the invoice is issued)." %}</span>
     </div>
     {% elif order_block_message %}
     <div class="mb-6 text-sm text-slate-600">{{ order_block_message }}</div>
@@ -67,16 +68,71 @@
                     </tbody>
                 </table>
             </div>
-            <div class="px-4 py-3 border-t border-slate-200 flex justify-end gap-4 bg-slate-50">
-                <span class="text-sm font-medium text-slate-600">{% trans "Invoice total (snapshot)" %}</span>
-                <span class="text-lg font-bold text-[var(--brand)]">{{ grand_total|format_price:settings }}</span>
+            <div class="px-4 py-3 border-t border-slate-200 flex flex-col sm:flex-row sm:justify-end sm:items-center gap-2 sm:gap-6 bg-slate-50">
+                <div class="flex justify-between sm:block sm:text-right">
+                    <span class="text-sm font-medium text-slate-600">{% trans "Paid to date" %}</span>
+                    <span class="text-sm font-semibold text-slate-900 tabular-nums sm:ml-2">{{ invoice_total_paid|format_price:settings }}</span>
+                </div>
+                <div class="flex justify-between sm:block sm:text-right">
+                    <span class="text-sm font-medium text-slate-600">{% trans "Remaining" %}</span>
+                    <span class="text-sm font-semibold text-slate-900 tabular-nums sm:ml-2">{{ invoice_amount_remaining|format_price:settings }}</span>
+                </div>
+                <div class="flex justify-between sm:block sm:text-right pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200">
+                    <span class="text-sm font-medium text-slate-600">{% trans "Invoice total (snapshot)" %}</span>
+                    <span class="text-lg font-bold text-[var(--brand)] tabular-nums sm:ml-2">{{ grand_total|format_price:settings }}</span>
+                </div>
             </div>
         </div>
         <div class="space-y-4">
+            {% if can_record_payment %}
+            <div class="bg-white rounded-xl border border-slate-200 p-4 text-sm">
+                <h3 class="font-semibold text-slate-900 mb-3">{% trans "Record payment" %}</h3>
+                <p class="text-xs text-slate-500 mb-3">{% trans "Add a partial or full payment. When the total paid reaches the invoice amount, the invoice is marked paid and any linked purchase order is set to paid." %}</p>
+                <form method="post" action="{% url 'pricelist:invoice_payment_add' pk=invoice.uuid %}" class="flex flex-col gap-3">
+                    {% csrf_token %}
+                    <div>
+                        <label for="id-payment-amount" class="block text-xs font-medium text-slate-600 mb-1">{% trans "Amount" %}</label>
+                        <input type="text" name="amount" id="id-payment-amount" required inputmode="decimal" placeholder="{{ invoice_amount_remaining|format_price:settings }}" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900">
+                    </div>
+                    <div>
+                        <label for="id-payment-paid-at" class="block text-xs font-medium text-slate-600 mb-1">{% trans "Paid at" %} <span class="text-slate-400 font-normal">{% trans "(optional)" %}</span></label>
+                        <input type="datetime-local" name="paid_at" id="id-payment-paid-at" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900">
+                    </div>
+                    <div>
+                        <label for="id-payment-note" class="block text-xs font-medium text-slate-600 mb-1">{% trans "Note" %} <span class="text-slate-400 font-normal">{% trans "(optional)" %}</span></label>
+                        <input type="text" name="note" id="id-payment-note" maxlength="500" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900">
+                    </div>
+                    <button type="submit" class="rounded-lg bg-[var(--brand)] px-3 py-2 text-sm font-medium text-white hover:opacity-90">{% trans "Add payment" %}</button>
+                </form>
+            </div>
+            {% endif %}
+            {% if invoice.payments.all %}
+            <div class="bg-white rounded-xl border border-slate-200 p-4 text-sm">
+                <h3 class="font-semibold text-slate-900 mb-3">{% trans "Payments" %}</h3>
+                <ul class="divide-y divide-slate-100">
+                    {% for p in invoice.payments.all %}
+                    <li class="py-3 flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                            <p class="font-medium text-slate-900 tabular-nums">{{ p.amount|format_price:settings }}</p>
+                            <p class="text-xs text-slate-500">{{ p.paid_at|date:"SHORT_DATETIME_FORMAT" }}{% if p.created_by %} · {{ p.created_by.get_username }}{% endif %}</p>
+                            {% if p.note %}<p class="text-xs text-slate-600 mt-1">{{ p.note }}</p>{% endif %}
+                        </div>
+                        {% if invoice.status != 'draft' %}
+                        <form method="post" action="{% url 'pricelist:invoice_payment_delete' pk=invoice.uuid payment_uuid=p.uuid %}" class="shrink-0" onsubmit="return confirm('{% trans "Remove this payment?" %}');">
+                            {% csrf_token %}
+                            <button type="submit" class="text-xs font-medium text-red-700 hover:underline">{% trans "Remove" %}</button>
+                        </form>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
             {% if invoice_status_targets %}
             <div class="bg-white rounded-xl border border-slate-200 p-4 text-sm">
                 <h3 class="font-semibold text-slate-900 mb-3">{% trans "Status" %}</h3>
                 <p class="text-xs text-slate-500 mb-3">{% trans "Current:" %} <strong class="text-slate-800">{{ invoice.get_status_display }}</strong></p>
+                <p class="text-xs text-slate-500 mb-3">{% trans "Unpaid, partially paid, and paid follow recorded payments. Use the form above to add payments." %}</p>
                 <form method="post" action="{% url 'pricelist:invoice_update_status' pk=invoice.uuid %}" class="flex flex-col gap-2">
                     {% csrf_token %}
                     <label for="id-invoice-status" class="text-xs font-medium text-slate-600">{% trans "Change to" %}</label>

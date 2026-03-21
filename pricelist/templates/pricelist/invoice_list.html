@@ -8,7 +8,7 @@
     <div class="mb-8">
         <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-[var(--brand)]">{% trans "Invoices" %}</h1>
         <p class="mt-1 text-slate-600 max-w-3xl">
-            {% trans "Invoices are created from saved calculations. Mark an invoice as sent before creating a purchase order — that records the amount owed to you before you order from suppliers." %}
+            {% trans "Invoices are created from saved calculations. Mark an invoice as issued before creating a purchase order, then record payments (partial or full). When fully paid, linked purchase orders move to paid automatically." %}
         </p>
     </div>
 
@@ -35,7 +35,8 @@
                     <td class="px-4 py-3">
                         <span class="inline-flex px-2 py-0.5 rounded text-xs font-medium
                             {% if inv.status == 'paid' %}bg-emerald-100 text-emerald-800
-                            {% elif inv.status == 'sent' %}bg-sky-100 text-sky-800
+                            {% elif inv.status == 'partially_paid' %}bg-violet-100 text-violet-800
+                            {% elif inv.status == 'unpaid' %}bg-sky-100 text-sky-800
                             {% elif inv.status == 'cancelled' %}bg-slate-100 text-slate-600
                             {% else %}bg-amber-100 text-amber-800{% endif %}">{{ inv.get_status_display }}</span>
                     </td>

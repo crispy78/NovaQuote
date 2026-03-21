@@ -1,99 +1,68 @@
 {% load i18n %}
 {# Expects: organization, org_chart (branches, unassigned, column_count, hbar_inset_percent) #}
-<section class="mb-8 bg-white rounded-xl shadow-sm border border-slate-200 p-5 lg:p-6 overflow-x-auto">
-    <h2 class="text-lg font-semibold text-slate-900 mb-4">{% trans "Organization chart" %}</h2>
-    <p class="text-sm text-slate-600 mb-6">{% trans "Departments and linked contacts. People without a department appear under Unassigned." %}</p>
+<section class="mb-8 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-slate-100 bg-slate-50/60">
+        <h2 class="text-lg font-semibold text-slate-900">{% trans "Organization chart" %}</h2>
+        <p class="text-sm text-slate-600 mt-1">{% trans "Departments and linked contacts. People without a department appear under Unassigned." %}</p>
+    </div>
 
-    <div class="org-chart-root flex flex-col items-center w-full max-w-5xl mx-auto">
-        {# Company node #}
-        <div class="relative z-20 shrink-0">
-            <div class="rounded-xl border-2 border-[var(--brand)] bg-brand/5 px-6 py-3 text-center shadow-sm">
-                <span class="text-xs font-semibold uppercase tracking-wide text-[var(--brand)]">{% trans "Company" %}</span>
-                <p class="text-base font-bold text-slate-900 mt-0.5">{{ organization.name }}</p>
-            </div>
-        </div>
-
-        {% if org_chart.branches or org_chart.unassigned %}
-        {% with n=org_chart.column_count %}
-        {# Main stem from company down to branch level #}
-        <div class="w-px h-6 bg-slate-400 shrink-0" aria-hidden="true"></div>
-
-        {# Row: horizontal bar + vertical drops to each department (or single column) #}
-        {# flex-nowrap keeps one row so the horizontal connector aligns with column centers; scroll on small screens #}
-        <div class="relative flex flex-row flex-nowrap justify-center gap-x-8 items-start w-full min-w-0 overflow-x-auto pb-1 pt-0">
-            {% if n >= 2 and org_chart.hbar_inset_percent %}
-            {# Horizontal connector between outer column centers #}
-            <div
-                class="pointer-events-none absolute top-0 left-0 right-0 h-6 z-0"
-                aria-hidden="true"
-            >
-                <div
-                    class="absolute top-0 h-px bg-slate-400"
-                    style="left: {{ org_chart.hbar_inset_percent }}%; right: {{ org_chart.hbar_inset_percent }}%;"
-                ></div>
-            </div>
-            {% endif %}
-
-            {% for branch in org_chart.branches %}
-            <div class="flex flex-col items-center max-w-[16rem] flex-1 min-w-[12rem] relative z-10">
-                {# Vertical from horizontal (or from stem when n==1) down to department box #}
-                {% if n >= 2 %}
-                <div class="w-px h-6 bg-slate-400 shrink-0" aria-hidden="true"></div>
-                {% else %}
-                <div class="w-px h-4 bg-slate-400 shrink-0 -mt-px" aria-hidden="true"></div>
-                {% endif %}
-                <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-center w-full">
-                    <span class="text-xs font-medium text-slate-500 uppercase">{% trans "Department" %}</span>
-                    <p class="text-sm font-semibold text-slate-900 mt-0.5">
-                        <a href="#dept-{{ branch.department.uuid }}" class="text-[var(--brand)] hover:underline focus:outline-none focus:ring-2 focus:ring-[var(--brand)] rounded">
-                            {{ branch.department.name }}
-                        </a>
-                    </p>
+    <div class="p-5 sm:p-6">
+        <div class="rounded-2xl border border-slate-200/80 bg-gradient-to-b from-slate-50/90 to-white p-5 sm:p-6">
+            <div class="flex flex-col items-center">
+                <div class="rounded-xl border-2 border-[var(--brand)] bg-white px-6 py-3 text-center shadow-md max-w-md w-full">
+                    <span class="text-xs font-semibold uppercase tracking-wide text-[var(--brand)]">{% trans "Company" %}</span>
+                    <p class="text-base font-bold text-slate-900 mt-0.5 leading-snug">{{ organization.name }}</p>
                 </div>
-                <div class="w-px flex-1 min-h-[0.75rem] bg-slate-400 shrink-0" aria-hidden="true"></div>
-                <ul class="w-full space-y-2 border border-slate-100 rounded-lg p-3 bg-white">
-                    {% for m in branch.members %}
-                    <li class="text-sm">
-                        <a href="{% url 'pricelist:contacts_person_detail' person_uuid=m.person.uuid %}" class="font-medium text-[var(--brand)] hover:underline">{{ m.person.first_name }} {{ m.person.last_name }}</a>
-                        {% if m.job_title %}<span class="text-slate-500"> — {{ m.job_title }}</span>{% endif %}
-                        {% if m.is_primary_contact %}<span class="ml-1 text-xs text-emerald-700 font-medium">{% trans "Primary" %}</span>{% endif %}
-                    </li>
-                    {% empty %}
-                    <li class="text-sm text-slate-400 italic">{% trans "No contacts in this department." %}</li>
-                    {% endfor %}
-                </ul>
+                <div class="w-px h-5 bg-slate-300 shrink-0 my-1" aria-hidden="true"></div>
             </div>
-            {% endfor %}
 
-            {% if org_chart.unassigned %}
-            <div id="org-chart-unassigned" class="flex flex-col items-center max-w-[16rem] flex-1 min-w-[12rem] relative z-10 scroll-mt-24">
-                {% if n >= 2 %}
-                <div class="w-px h-6 bg-slate-400 shrink-0" aria-hidden="true"></div>
-                {% else %}
-                <div class="w-px h-4 bg-slate-400 shrink-0 -mt-px" aria-hidden="true"></div>
-                {% endif %}
-                <div class="rounded-lg border border-dashed border-amber-300 bg-amber-50/80 px-4 py-2 text-center w-full">
-                    <span class="text-xs font-medium text-amber-800 uppercase">{% trans "Unassigned" %}</span>
-                    <p class="text-xs text-amber-900/80">{% trans "No department on file" %}</p>
+            {% if org_chart.branches or org_chart.unassigned %}
+            <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-5 w-full">
+                {% for branch in org_chart.branches %}
+                <div class="flex flex-col rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden min-w-0">
+                    <div class="px-3 py-2.5 bg-slate-50 border-b border-slate-100 text-center">
+                        <span class="text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500">{% trans "Department" %}</span>
+                        <p class="text-sm font-semibold text-slate-900 mt-0.5 leading-snug break-words">
+                            <a href="#dept-{{ branch.department.uuid }}" class="text-[var(--brand)] hover:underline focus:outline-none focus:ring-2 focus:ring-[var(--brand)] rounded">
+                                {{ branch.department.name }}
+                            </a>
+                        </p>
+                    </div>
+                    <ul class="divide-y divide-slate-100 text-sm flex-1">
+                        {% for m in branch.members %}
+                        <li class="px-3 py-2.5 leading-snug">
+                            <a href="{% url 'pricelist:contacts_person_detail' person_uuid=m.person.uuid %}" class="font-medium text-[var(--brand)] hover:underline break-words">{{ m.person.first_name }} {{ m.person.last_name }}</a>
+                            {% if m.job_title %}<span class="text-slate-500"> — {{ m.job_title }}</span>{% endif %}
+                            {% if m.is_primary_contact %}<span class="ml-1 text-xs text-emerald-700 font-medium">{% trans "Primary" %}</span>{% endif %}
+                        </li>
+                        {% empty %}
+                        <li class="px-3 py-3 text-sm text-slate-400 italic">{% trans "No contacts in this department." %}</li>
+                        {% endfor %}
+                    </ul>
                 </div>
-                <div class="w-px flex-1 min-h-[0.75rem] bg-slate-400 shrink-0" aria-hidden="true"></div>
-                <ul class="w-full space-y-2 border border-slate-100 rounded-lg p-3 bg-white">
-                    {% for m in org_chart.unassigned %}
-                    <li class="text-sm">
-                        <a href="{% url 'pricelist:contacts_person_detail' person_uuid=m.person.uuid %}" class="font-medium text-[var(--brand)] hover:underline">{{ m.person.first_name }} {{ m.person.last_name }}</a>
-                        {% if m.job_title %}<span class="text-slate-500"> — {{ m.job_title }}</span>{% endif %}
-                        {% if m.is_primary_contact %}<span class="ml-1 text-xs text-emerald-700 font-medium">{% trans "Primary" %}</span>{% endif %}
-                    </li>
-                    {% endfor %}
-                </ul>
+                {% endfor %}
+
+                {% if org_chart.unassigned %}
+                <div id="org-chart-unassigned" class="flex flex-col rounded-xl border border-dashed border-amber-300/90 bg-amber-50/40 shadow-sm overflow-hidden min-w-0 scroll-mt-24">
+                    <div class="px-3 py-2.5 bg-amber-50 border-b border-amber-200/80 text-center">
+                        <span class="text-[0.65rem] font-semibold uppercase tracking-wide text-amber-900/80">{% trans "Unassigned" %}</span>
+                        <p class="text-xs text-amber-900/70 mt-0.5">{% trans "No department on file" %}</p>
+                    </div>
+                    <ul class="divide-y divide-amber-100/80 text-sm flex-1 bg-white/60">
+                        {% for m in org_chart.unassigned %}
+                        <li class="px-3 py-2.5 leading-snug">
+                            <a href="{% url 'pricelist:contacts_person_detail' person_uuid=m.person.uuid %}" class="font-medium text-[var(--brand)] hover:underline break-words">{{ m.person.first_name }} {{ m.person.last_name }}</a>
+                            {% if m.job_title %}<span class="text-slate-500"> — {{ m.job_title }}</span>{% endif %}
+                            {% if m.is_primary_contact %}<span class="ml-1 text-xs text-emerald-700 font-medium">{% trans "Primary" %}</span>{% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
             </div>
+            {% else %}
+            <p class="text-sm text-slate-500 text-center mt-2">{% trans "Add departments and link people to build the chart." %}</p>
             {% endif %}
         </div>
-        {% endwith %}
-        {% endif %}
-
-        {% if not org_chart.branches and not org_chart.unassigned %}
-        <p class="text-sm text-slate-500 mt-4">{% trans "Add departments and link people to build the chart." %}</p>
-        {% endif %}
     </div>
 </section>

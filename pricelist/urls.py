@@ -83,6 +83,34 @@ urlpatterns = [
         name="catalog_combination_purge",
     ),
     path("catalog/images/", catalog_views.catalog_image_list_view, name="catalog_image_list"),
+    path("catalog/categories/", catalog_views.catalog_category_list_view, name="catalog_category_list"),
+    path("catalog/categories/add/", catalog_views.catalog_category_create_view, name="catalog_category_create"),
+    path(
+        "catalog/categories/<uuid:category_uuid>/edit/",
+        catalog_views.catalog_category_edit_view,
+        name="catalog_category_edit",
+    ),
+    path(
+        "catalog/categories/<uuid:category_uuid>/remove/",
+        catalog_views.catalog_category_delete_view,
+        name="catalog_category_delete",
+    ),
+    path("catalog/profit-profiles/", catalog_views.catalog_profit_profile_list_view, name="catalog_profit_profile_list"),
+    path(
+        "catalog/profit-profiles/add/",
+        catalog_views.catalog_profit_profile_create_view,
+        name="catalog_profit_profile_create",
+    ),
+    path(
+        "catalog/profit-profiles/<uuid:profile_uuid>/edit/",
+        catalog_views.catalog_profit_profile_edit_view,
+        name="catalog_profit_profile_edit",
+    ),
+    path(
+        "catalog/profit-profiles/<uuid:profile_uuid>/remove/",
+        catalog_views.catalog_profit_profile_delete_view,
+        name="catalog_profit_profile_delete",
+    ),
     path("product/<uuid:uuid>/", product_detail_view, name="product_detail"),
     path("proposal/", proposal_view, name="proposal"),
     path("proposal/save/", proposal_save_view, name="proposal_save"),
@@ -95,6 +123,16 @@ urlpatterns = [
     path("invoices/create/<str:identifier>/", invoice_views.invoice_create_view, name="invoice_create"),
     path("invoices/<uuid:pk>/", invoice_views.invoice_detail_view, name="invoice_detail"),
     path("invoices/<uuid:pk>/status/", invoice_views.invoice_update_status_view, name="invoice_update_status"),
+    path(
+        "invoices/<uuid:pk>/payments/add/",
+        invoice_views.invoice_record_payment_view,
+        name="invoice_payment_add",
+    ),
+    path(
+        "invoices/<uuid:pk>/payments/<uuid:payment_uuid>/delete/",
+        invoice_views.invoice_delete_payment_view,
+        name="invoice_payment_delete",
+    ),
     path("orders/", order_list_view, name="order_list"),
     path("orders/create/<str:identifier>/", order_create_view, name="order_create"),
     # UUID-based detail view (external integrations / stable links)

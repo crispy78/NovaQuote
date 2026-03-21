@@ -18,6 +18,7 @@ from .models import (
     FrontendRole,
     GeneralSettings,
     Invoice,
+    InvoicePayment,
     Organization,
     OrganizationInvoice,
     OrganizationNetworkLink,
@@ -212,7 +213,7 @@ class GeneralSettingsAdmin(admin.ModelAdmin):
             "fields": ("site_name", "logo", "color_scheme"),
             "description": _(
                 "Logo: leave empty for the default NovaQuote mark, or upload your own. "
-                "Choose Orange, Navy blue, Teal (default), Black, or Red for the theme; primary and hover hex values are set automatically."
+                "Choose NovaQuote logo (default), Orange, Navy blue, Teal, Black, or Red for the theme; primary and hover hex values are set automatically."
             ),
             "classes": ("tc-fieldset-group",),
         }),
@@ -1048,6 +1049,12 @@ class UserFrontendProfileAdmin(admin.ModelAdmin):
     readonly_fields = ("uuid",)
 
 
+class InvoicePaymentInline(admin.TabularInline):
+    model = InvoicePayment
+    extra = 0
+    readonly_fields = ("uuid", "created_at")
+
+
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
     list_display = (
@@ -1063,4 +1070,5 @@ class InvoiceAdmin(admin.ModelAdmin):
     readonly_fields = ("uuid", "created_at", "updated_at")
     # Autocomplete shows Proposal.__str__ (reference + UUID), not the raw integer PK.
     autocomplete_fields = ("proposal",)
+    inlines = (InvoicePaymentInline,)
 

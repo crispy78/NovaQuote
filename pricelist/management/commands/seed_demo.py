@@ -54,7 +54,11 @@ from pricelist.models import (
     Supplier,
 )
 from pricelist.rbac_demo_seed import ensure_frontend_roles_and_demo_users
-from pricelist.services.invoice_service import create_invoice_for_proposal, mark_invoice_sent
+from pricelist.services.invoice_service import (
+    create_invoice_for_proposal,
+    mark_invoice_sent,
+    record_invoice_payment,
+)
 from pricelist.services.order_service import create_order_from_proposal
 
 
@@ -326,9 +330,9 @@ class Command(BaseCommand):
                 time_per_product_minutes=Decimal("15.00"),
                 minimum_visit_minutes=Decimal("60.00"),
                 hourly_rate=Decimal("75.00"),
-                color_scheme=GeneralSettings.COLOR_SCHEME_TEAL,
-                primary_color="#008080",
-                primary_color_hover="#006666",
+                color_scheme=GeneralSettings.COLOR_SCHEME_NOVAQUOTE_LOGO,
+                primary_color="#C19A6B",
+                primary_color_hover="#8B6F52",
             )
 
             profile = ProfitProfile.objects.create(
@@ -1131,6 +1135,9 @@ class Command(BaseCommand):
                 "Released to suppliers — bundle may ship in two waves; confirm dock hours with Van Dijk."
             )
             order_vd.save(update_fields=["status", "note"])
+            record_invoice_payment(
+                inv_vd, inv_vd.grand_total_snapshot, user=admin_user, note="Demo: full payment"
+            )
 
             vd_items = list(
                 OrderLineItem.objects.filter(order_line__order=order_vd).order_by("id")
@@ -1151,6 +1158,11 @@ class Command(BaseCommand):
             # Draft: created but not yet released to suppliers
             order_hh.status = Order.STATUS_DRAFT
             order_hh.save(update_fields=["status"])
+            deposit = (inv_hh.grand_total_snapshot / 2).quantize(Decimal("0.01"))
+            if deposit > 0:
+                record_invoice_payment(
+                    inv_hh, deposit, user=admin_user, note="Demo: partial payment"
+                )
 
         self.stdout.write(self.style.SUCCESS("Demo data loaded."))
         self.stdout.write(f"  Superuser: {username} / {password} (change this password!)")
@@ -1158,7 +1170,7 @@ class Command(BaseCommand):
             f"  Frontend demo users (password «{password}»): sales (Sales), catalog (Catalog manager), buyer (Procurement)."
         )
         self.stdout.write(
-            '  General settings: site name "NovaQuote", Teal (#008080) color scheme, custom logo cleared (bundled default shown).'
+            '  General settings: site name "NovaQuote", NovaQuote logo color scheme (warm gold / brown), custom logo cleared (bundled default shown).'
         )
         self.stdout.write("  Stable UUID v5 on seeded rows (organizations, persons, products article_number, …).")
         self.stdout.write(

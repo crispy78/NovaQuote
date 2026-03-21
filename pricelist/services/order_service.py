@@ -213,6 +213,8 @@ def update_order_from_post(order: Order, post: Dict[str, str]) -> None:
         update_order_fields.append("note")
 
     if update_order_fields:
+        if "updated_at" not in update_order_fields:
+            update_order_fields.append("updated_at")
         order.save(update_fields=update_order_fields)
 
     for oli in OrderLineItem.objects.filter(order_line__order=order):

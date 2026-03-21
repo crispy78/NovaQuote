@@ -1,0 +1,146 @@
+{% load i18n %}
+{# Expects: commerce_analytics, general_settings #}
+<section class="mt-8 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="px-5 py-4 sm:px-6 border-b border-slate-100 bg-slate-50/60">
+        <h2 class="text-lg font-semibold text-slate-900">{% trans "Sales & invoicing" %}</h2>
+        <p class="text-sm text-slate-600 mt-1">{% trans "Based on proposals linked to this company: invoiced turnover and non-cancelled orders." %}</p>
+    </div>
+
+    <div class="p-5 sm:p-6 space-y-8">
+        <div>
+            <h3 class="text-sm font-semibold text-slate-800 mb-2">{% trans "Invoiced turnover (last 10 years)" %}</h3>
+            {% if commerce_analytics.has_invoices %}
+            <div class="h-56 sm:h-64">
+                <canvas id="org-commerce-turnover-chart" width="400" height="256" aria-label="{% trans 'Turnover chart' %}"></canvas>
+            </div>
+            {{ commerce_analytics.turnover_chart_json|json_script:"org-commerce-turnover-data" }}
+            <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+            <script>
+                (function() {
+                    var el = document.getElementById("org-commerce-turnover-data");
+                    if (!el || !el.textContent) return;
+                    var payload = JSON.parse(el.textContent);
+                    var canvas = document.getElementById("org-commerce-turnover-chart");
+                    if (!canvas || typeof Chart === "undefined") return;
+                    var brand = "{{ general_settings.effective_primary_color|default:'#c19a6b'|escapejs }}";
+                    var brandFill = "{{ general_settings.effective_primary_rgba_faint|default:'rgba(37, 99, 235, 0.12)'|escapejs }}";
+                    new Chart(canvas, {
+                        type: "line",
+                        data: {
+                            labels: payload.labels,
+                            datasets: [{
+                                label: "{% filter escapejs %}{% trans 'Invoiced amount' %}{% endfilter %} (" + (payload.currency || "") + ")",
+                                data: payload.values,
+                                borderColor: brand,
+                                backgroundColor: brandFill,
+                                fill: true,
+                                tension: 0.25
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: true } },
+                            scales: { y: { beginAtZero: true } }
+                        }
+                    });
+                })();
+            </script>
+            {% else %}
+            <p class="text-sm text-slate-500">{% trans "No invoices yet for proposals linked to this company." %}</p>
+            {% endif %}
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-3">
+            <div class="rounded-xl border border-slate-200 overflow-hidden">
+                <h3 class="px-4 py-2.5 text-sm font-semibold text-slate-800 bg-slate-50 border-b border-slate-100">{% trans "Top purchased lines" %}</h3>
+                <div class="p-4">
+                    {% if commerce_analytics.has_orders and commerce_analytics.top_lines %}
+                    <ul class="space-y-3 text-sm">
+                        {% for row in commerce_analytics.top_lines %}
+                        <li class="border-b border-slate-100 last:border-0 pb-3 last:pb-0">
+                            <div class="font-medium text-slate-900">{{ row.label }}</div>
+                            <div class="text-xs text-slate-500 mt-0.5">{{ row.line_type_display }}</div>
+                            <div class="mt-1 text-slate-700">
+                                {{ row.revenue|floatformat:2 }} {{ commerce_analytics.currency }}
+                                <span class="text-slate-500">· {% trans "Orders" %}: {{ row.orders }}</span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-sm text-slate-500">{% trans "No order lines yet for proposals linked to this company." %}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="rounded-xl border border-slate-200 overflow-hidden">
+                <h3 class="px-4 py-2.5 text-sm font-semibold text-slate-800 bg-slate-50 border-b border-slate-100">{% trans "Top departments by orders" %}</h3>
+                <div class="p-4 overflow-x-auto">
+                    {% if commerce_analytics.has_orders and commerce_analytics.top_departments %}
+                    <table class="w-full text-sm text-left">
+                        <thead>
+                            <tr class="text-xs text-slate-500 border-b border-slate-100">
+                                <th class="pb-2 pr-2 font-medium">{% trans "Department" %}</th>
+                                <th class="pb-2 pr-2 font-medium text-right whitespace-nowrap">{{ commerce_analytics.current_year }}</th>
+                                <th class="pb-2 font-medium text-right whitespace-nowrap">{{ commerce_analytics.last_year }}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for row in commerce_analytics.top_departments %}
+                            <tr>
+                                <td class="py-2 pr-2 font-medium text-slate-900">{{ row.label }}</td>
+                                <td class="py-2 pr-2 text-right tabular-nums">
+                                    {{ row.orders_this_year }} <span class="text-xs text-slate-500">{% trans "orders" %}</span>
+                                    <div class="text-xs text-slate-500">{{ row.revenue_this_year|floatformat:2 }} {{ commerce_analytics.currency }}</div>
+                                </td>
+                                <td class="py-2 text-right tabular-nums">
+                                    {{ row.orders_last_year }} <span class="text-xs text-slate-500">{% trans "orders" %}</span>
+                                    <div class="text-xs text-slate-500">{{ row.revenue_last_year|floatformat:2 }} {{ commerce_analytics.currency }}</div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-sm text-slate-500">{% trans "No orders attributed to departments yet." %}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="rounded-xl border border-slate-200 overflow-hidden">
+                <h3 class="px-4 py-2.5 text-sm font-semibold text-slate-800 bg-slate-50 border-b border-slate-100">{% trans "Top contacts by orders" %}</h3>
+                <div class="p-4 overflow-x-auto">
+                    {% if commerce_analytics.has_orders and commerce_analytics.top_people %}
+                    <table class="w-full text-sm text-left">
+                        <thead>
+                            <tr class="text-xs text-slate-500 border-b border-slate-100">
+                                <th class="pb-2 pr-2 font-medium">{% trans "Contact" %}</th>
+                                <th class="pb-2 pr-2 font-medium text-right whitespace-nowrap">{{ commerce_analytics.current_year }}</th>
+                                <th class="pb-2 font-medium text-right whitespace-nowrap">{{ commerce_analytics.last_year }}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for row in commerce_analytics.top_people %}
+                            <tr>
+                                <td class="py-2 pr-2 font-medium text-slate-900">{{ row.label }}</td>
+                                <td class="py-2 pr-2 text-right tabular-nums">
+                                    {{ row.orders_this_year }} <span class="text-xs text-slate-500">{% trans "orders" %}</span>
+                                    <div class="text-xs text-slate-500">{{ row.revenue_this_year|floatformat:2 }} {{ commerce_analytics.currency }}</div>
+                                </td>
+                                <td class="py-2 text-right tabular-nums">
+                                    {{ row.orders_last_year }} <span class="text-xs text-slate-500">{% trans "orders" %}</span>
+                                    <div class="text-xs text-slate-500">{{ row.revenue_last_year|floatformat:2 }} {{ commerce_analytics.currency }}</div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-sm text-slate-500">{% trans "No orders with a selected contact on the proposal yet." %}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

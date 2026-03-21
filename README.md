@@ -7,8 +7,8 @@ NovaQuote is an open-source Django application for quoting and order processing.
 The intended sequence is:
 
 1. **Saved calculation (proposal)** — build the quote and save it.
-2. **Invoice** — create a draft invoice (line totals are snapshotted). When you **mark the invoice as sent**, it is treated as issued to the customer (payment obligation). A **lead** linked on the proposal is promoted to **client** in Contacts at that moment.
-3. **Order** — only after the invoice is **sent** (or **paid**) can you create the **purchase order** to suppliers.
+2. **Invoice** — create a draft invoice (line totals are snapshotted). When you **mark the invoice as issued**, it becomes **unpaid** (payment obligation). Record **partial or full payments** on the invoice; status moves to **partially paid** and then **paid** when the total paid reaches the invoice amount. A **lead** linked on the proposal is promoted to **client** in Contacts when the invoice is issued.
+3. **Order** — after the invoice is **issued** (unpaid, partially paid, or paid), you can create the **purchase order** to suppliers. When the customer invoice is **fully paid**, a linked order in **draft** or **sent** is set to **paid** automatically.
 
 Open **Invoicing** in the top menu for the invoice list. You can start an invoice from a saved calculation or open it from the invoice page and use **Create order** there.
 
@@ -56,7 +56,7 @@ To **erase all data** (including users and history) and load a fresh demo catalo
 python manage.py seed_demo --yes
 ```
 
-Defaults: superuser **`admin`** / **`demo`** — change the password immediately. General settings are reset with **no custom logo** (the **bundled NovaQuote** mark is shown), site name **NovaQuote**, and the **Teal** color scheme (see below). Product images require outbound HTTPS to `placehold.net` during seed; if that fails, catalog rows are still created without files.
+Defaults: superuser **`admin`** / **`demo`** — change the password immediately. General settings are reset with **no custom logo** (the **bundled NovaQuote** mark is shown), site name **NovaQuote**, and the **NovaQuote logo** color scheme (warm gold / brown on cream; see below). Product images require outbound HTTPS to `placehold.net` during seed; if that fails, catalog rows are still created without files.
 
 The seed creates **stable UUID v5** values for demo rows that have a `uuid` field (and explicit **`article_number`** on products), per project rules for external references.
 
@@ -112,12 +112,14 @@ Users **without** a profile keep the old behaviour: non-staff get the full menu 
 Log in to `/admin/` and configure `General settings` for:
 - currency/rounding/number format
 - frontend language
-- **Color scheme** — **Orange** (#FFA726), **Navy blue** (#283593), **Teal** (#008080, default), **Black** (#424242), or **Red** (#DC143C)
+- **Color scheme** — **NovaQuote logo** (warm gold / brown, default), **Orange** (#FFA726), **Navy blue** (#283593), **Teal** (#008080), **Black** (#424242), or **Red** (#DC143C)
 - branding (**optional logo** upload to replace the default NovaQuote image, site name)
 
 ## Multiple suppliers per product
 
 A catalog **product** can have several **supplier offers** (`Product supplier offers` inline on the product in admin): each row is supplier + cost, lead time, payment terms, and optional **Preferred supplier**. The **price list** and default proposal pricing use the **preferred** row (or the only row). The main `Product.supplier` / `cost_price` fields stay in sync with that preferred row for compatibility.
+
+On the frontend, the **Products** menu (for users with catalog access) lists **Products**, **Combinations**, **Categories**, **Profit profiles**, and **Image library** — each entry links to its overview page (add, remove, and trash actions are on those pages). The same data is available under **Admin → Categories** and **Admin → Profit profiles**.
 
 On the **Proposal** page, if a product has more than one offer, a **Supplier** column appears: pick the source per line, or use bulk actions (**Preferred**, **Cheapest price**, **Fastest delivery**, **Best payment terms**). **Save calculation** stores the chosen `ProductSupplier` on each line and recomputes the unit price server-side from the catalog (do not trust client-submitted prices for products). **Orders** group lines by the supplier chosen on the proposal line when set.
 
@@ -144,7 +146,7 @@ Data model: **Organization** (one row per company) with multiple roles via **Org
 
 You can also **add and edit** companies, people, departments, and org–person links from the Contacts pages (buttons such as **Add company**, **Edit company**, **Add person**, **Link person**, **Add life event**). Success messages appear at the top of the page.
 
-On **supplier / client / lead** organization detail pages, an **organization chart** shows departments and linked contacts (people without a department appear under **Unassigned**). Department names in the chart link to the **Departments** table on the same page (`#dept-…` anchors). **Email** and **phone** values on Contacts pages (and supplier CRM on product detail) use **`mailto:`** and **`tel:`** links so the OS mail client or dialer can open.
+On **supplier / client / lead** organization detail pages, an **organization chart** shows departments and linked contacts (people without a department appear under **Unassigned**). The same page includes **sales & invoicing** analytics for that company when proposals are linked: **invoiced turnover** over the last ten years (Chart.js), **top purchased** proposal lines (products or combinations), and **top departments / contacts by orders** with **this year vs last year** counts and revenue. Department names in the chart link to the **Departments** table on the same page (`#dept-…` anchors). **Email** and **phone** values on Contacts pages (and supplier CRM on product detail) use **`mailto:`** and **`tel:`** links so the OS mail client or dialer can open.
 
 **Network** partners can be linked to multiple suppliers and clients via **Organization network links** (buttons **Link company** on the network partner’s page, **Link network partner** on supplier/client/lead pages). The same partner can have many links; each pair is unique.
 

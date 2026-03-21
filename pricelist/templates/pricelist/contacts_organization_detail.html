@@ -115,6 +115,8 @@
         {% endif %}
     </div>
 
+    {% include "pricelist/contacts_organization_commerce_fragment.html" with commerce_analytics=commerce_analytics %}
+
     {% if variant == "network" or network_partner_links %}
     <section class="mt-8 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <h2 class="px-5 py-3 bg-slate-50 border-b border-slate-200 text-lg font-semibold text-slate-900">{% trans "Linked companies" %}</h2>

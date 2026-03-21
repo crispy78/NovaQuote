@@ -7,6 +7,7 @@ from collections import defaultdict
 from django.db.models import Prefetch
 
 from ..models import Department, Organization, OrganizationPerson, OrganizationRole, Person
+from .organization_commerce_analytics import compute_organization_commerce_analytics
 
 
 def _org_queryset_base():
@@ -91,6 +92,7 @@ def organization_detail_bundle(organization: Organization, *, variant: str) -> d
             "network_organization__name"
         )
     )
+    commerce_analytics = compute_organization_commerce_analytics(organization)
     return {
         "organization": organization,
         "variant": variant,
@@ -103,6 +105,7 @@ def organization_detail_bundle(organization: Organization, *, variant: str) -> d
         "org_chart": org_chart,
         "network_partner_links": network_out,
         "counterparty_network_links": network_in,
+        "commerce_analytics": commerce_analytics,
     }
 
 

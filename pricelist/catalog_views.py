@@ -11,7 +11,8 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
+from django.db.models.deletion import ProtectedError
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -20,16 +21,18 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods, require_POST
 
 from .catalog_forms import (
+    CatalogCategoryForm,
     CatalogCombinationForm,
     CatalogCombinationItemFormSet,
     CatalogProductForm,
     CatalogProductSupplierFormSet,
+    CatalogProfitProfileForm,
     ensure_preferred_product_supplier_offer,
     primary_supplier_row_from_formset,
     refresh_combination_sales_price,
 )
 from .frontend_access import get_capabilities, require_capability
-from .models import Combination, CombinationItem, Product, ProductOption, ProductSupplier
+from .models import Category, Combination, CombinationItem, Product, ProductOption, ProductSupplier, ProfitProfile
 
 
 def _product_label(p: Product) -> str:
@@ -574,3 +577,160 @@ def catalog_image_list_view(request):
             "media_url": settings.MEDIA_URL,
         },
     )
+
+
+# --- Categories & profit profiles (catalog menu) ---
+
+
+@require_http_methods(["GET", "POST"])
+@require_capability("access_catalog")
+def catalog_category_list_view(request):
+    categories = (
+        Category.objects.annotate(product_count=Count("products"))
+        .order_by("sort_order", "name")
+    )
+    return render(
+        request,
+        "pricelist/catalog_category_list.html",
+        {
+            "page_title": _("Categories"),
+            "page_subtitle": _("Manage product categories for the catalog and price list."),
+            "categories": categories,
+        },
+    )
+
+
+@require_http_methods(["GET", "POST"])
+@require_capability("catalog_change")
+def catalog_category_create_view(request):
+    if request.method == "POST":
+        form = CatalogCategoryForm(request.POST)
+        if form.is_valid():
+            row = form.save()
+            messages.success(request, _("Category created."))
+            return redirect("pricelist:catalog_category_edit", category_uuid=row.uuid)
+    else:
+        form = CatalogCategoryForm()
+    return render(
+        request,
+        "pricelist/catalog_category_form.html",
+        {
+            "page_title": _("Add category"),
+            "page_subtitle": _("Create a new category."),
+            "form": form,
+            "is_new": True,
+        },
+    )
+
+
+@require_http_methods(["GET", "POST"])
+@require_capability("catalog_change")
+def catalog_category_edit_view(request, category_uuid):
+    category = get_object_or_404(Category, uuid=category_uuid)
+    if request.method == "POST":
+        form = CatalogCategoryForm(request.POST, instance=category)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _("Category saved."))
+            return redirect("pricelist:catalog_category_list")
+    else:
+        form = CatalogCategoryForm(instance=category)
+    return render(
+        request,
+        "pricelist/catalog_category_form.html",
+        {
+            "page_title": _("Edit category"),
+            "page_subtitle": category.name,
+            "form": form,
+            "is_new": False,
+            "category": category,
+        },
+    )
+
+
+@require_POST
+@require_capability("catalog_change")
+def catalog_category_delete_view(request, category_uuid):
+    category = get_object_or_404(Category, uuid=category_uuid)
+    try:
+        category.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            _("Cannot delete this category: one or more products are still assigned to it. Reassign or remove those products first."),
+        )
+        return redirect("pricelist:catalog_category_list")
+    messages.success(request, _("Category removed."))
+    return redirect("pricelist:catalog_category_list")
+
+
+@require_http_methods(["GET", "POST"])
+@require_capability("access_catalog")
+def catalog_profit_profile_list_view(request):
+    profiles = ProfitProfile.objects.annotate(product_count=Count("products")).order_by("name")
+    return render(
+        request,
+        "pricelist/catalog_profit_profile_list.html",
+        {
+            "page_title": _("Profit profiles"),
+            "page_subtitle": _("Manage markup percentages and fixed amounts for catalog pricing."),
+            "profiles": profiles,
+        },
+    )
+
+
+@require_http_methods(["GET", "POST"])
+@require_capability("catalog_change")
+def catalog_profit_profile_create_view(request):
+    if request.method == "POST":
+        form = CatalogProfitProfileForm(request.POST)
+        if form.is_valid():
+            row = form.save()
+            messages.success(request, _("Profit profile created."))
+            return redirect("pricelist:catalog_profit_profile_edit", profile_uuid=row.uuid)
+    else:
+        form = CatalogProfitProfileForm()
+    return render(
+        request,
+        "pricelist/catalog_profit_profile_form.html",
+        {
+            "page_title": _("Add profit profile"),
+            "page_subtitle": _("Create a new profit profile."),
+            "form": form,
+            "is_new": True,
+        },
+    )
+
+
+@require_http_methods(["GET", "POST"])
+@require_capability("catalog_change")
+def catalog_profit_profile_edit_view(request, profile_uuid):
+    profile = get_object_or_404(ProfitProfile, uuid=profile_uuid)
+    if request.method == "POST":
+        form = CatalogProfitProfileForm(request.POST, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _("Profit profile saved."))
+            return redirect("pricelist:catalog_profit_profile_list")
+    else:
+        form = CatalogProfitProfileForm(instance=profile)
+    return render(
+        request,
+        "pricelist/catalog_profit_profile_form.html",
+        {
+            "page_title": _("Edit profit profile"),
+            "page_subtitle": profile.name,
+            "form": form,
+            "is_new": False,
+            "profit_profile": profile,
+        },
+    )
+
+
+@require_POST
+@require_capability("catalog_change")
+def catalog_profit_profile_delete_view(request, profile_uuid):
+    profile = get_object_or_404(ProfitProfile, uuid=profile_uuid)
+    profile.delete()
+    messages.success(request, _("Profit profile removed. Products that used it no longer have a profile selected."))
+    return redirect("pricelist:catalog_profit_profile_list")

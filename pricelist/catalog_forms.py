@@ -307,6 +307,35 @@ CatalogCombinationItemFormSet = inlineformset_factory(
 )
 
 
+class CatalogCategoryForm(forms.ModelForm):
+    """Category editor for the catalog menu."""
+
+    class Meta:
+        model = Category
+        fields = ["name", "sort_order"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["sort_order"].widget.attrs.setdefault("min", "0")
+        _style_form_widgets(self.fields)
+
+
+class CatalogProfitProfileForm(forms.ModelForm):
+    """Profit profile editor for the catalog menu."""
+
+    class Meta:
+        model = ProfitProfile
+        fields = ["name", "markup_percentage", "markup_fixed", "is_active"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _style_form_widgets(self.fields)
+        cb_attrs = (
+            "rounded border-slate-300 text-[var(--brand)] focus:ring-[var(--brand)] shrink-0 mt-1 h-4 w-4"
+        )
+        self.fields["is_active"].widget.attrs.setdefault("class", cb_attrs)
+
+
 def refresh_combination_sales_price(combination: Combination) -> None:
     c = (
         Combination.objects.filter(pk=combination.pk)

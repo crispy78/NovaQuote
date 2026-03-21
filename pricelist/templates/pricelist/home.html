@@ -11,18 +11,33 @@
             <span class="text-brand">{{ general_settings.site_name|default:"NovaQuote" }}</span>
         </h1>
         <p class="mt-4 text-lg text-slate-600">
-            {% trans "View our price list or create a proposal for your contract." %}
+            {% if frontend_capabilities.access_proposals %}
+                {% trans "View our price list or create a proposal for your contract." %}
+            {% elif frontend_capabilities.access_price_list %}
+                {% trans "View our price list and use the menu for your available tools." %}
+            {% else %}
+                {% trans "Use the menu for the areas you can access." %}
+            {% endif %}
         </p>
         <div class="mt-10 flex flex-wrap items-center justify-center gap-4">
+            {% if frontend_capabilities.access_price_list %}
             <a href="{% url 'pricelist:price_list_products' %}" class="inline-flex items-center gap-2 rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-hover transition">
                 {% trans "Products" %}
             </a>
             <a href="{% url 'pricelist:price_list_combinations' %}" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition">
                 {% trans "Combinations" %}
             </a>
+            {% endif %}
+            {% if frontend_capabilities.access_proposals %}
             <a href="{% url 'pricelist:proposal' %}" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition">
                 {% trans "Proposal" %}
             </a>
+            {% endif %}
+            {% if frontend_capabilities.access_orders %}
+            <a href="{% url 'pricelist:order_list' %}" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition">
+                {% trans "Orders" %}
+            </a>
+            {% endif %}
         </div>
     </div>
 </div>

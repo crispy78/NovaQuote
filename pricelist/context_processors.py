@@ -13,6 +13,16 @@ def nav_categories(request):
     return {"nav_categories": Category.objects.order_by("sort_order", "name")}
 
 
+def frontend_capabilities(request):
+    """Expose resolved FrontendCapabilities (see FrontendAccessMiddleware)."""
+    from .frontend_access import get_capabilities
+
+    cap = getattr(request, "frontend_capabilities", None)
+    if cap is None:
+        cap = get_capabilities(getattr(request, "user", None))
+    return {"frontend_capabilities": cap}
+
+
 def general_settings(request):
     """Expose GeneralSettings (e.g. for configurable logo) in all templates."""
     gs = get_general_settings()

@@ -17,18 +17,24 @@
             </p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
+            {% if frontend_capabilities.access_invoicing or frontend_capabilities.access_orders %}
             <p class="w-full text-xs text-slate-500 sm:w-auto sm:mr-2">{% trans "Flow: saved calculation → invoice (send) → order." %}</p>
+            {% endif %}
+            {% if frontend_capabilities.access_invoicing %}
             {% if invoice %}
             <a href="{% url 'pricelist:invoice_detail' pk=invoice.uuid %}" class="rounded-md border border-[var(--brand)] bg-white px-4 py-2 text-sm font-medium text-[var(--brand)] hover:bg-[var(--brand)]/5">{% trans "View invoice" %}</a>
             {% else %}
             <a href="{% url 'pricelist:invoice_create' identifier=proposal.uuid %}" class="rounded-md border border-[var(--brand)] bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:opacity-90">{% trans "Create invoice" %}</a>
             {% endif %}
+            {% endif %}
+            {% if frontend_capabilities.access_orders %}
             {% if has_order %}
             <a href="{% url 'pricelist:order_detail_uuid' pk=proposal.order.uuid %}" class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50">{% trans "View order" %}</a>
-            {% elif can_create_order_from_proposal %}
+            {% elif can_create_order_from_proposal and frontend_capabilities.access_invoicing %}
             <a href="{% url 'pricelist:order_create' identifier=proposal.uuid %}" class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50">{% trans "Create order" %}</a>
-            {% elif invoice and not has_order %}
+            {% elif invoice and not has_order and frontend_capabilities.access_invoicing %}
             <span class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 max-w-md">{% trans "Open the invoice and mark it as sent before you can create an order." %}</span>
+            {% endif %}
             {% endif %}
             <a href="{% url 'pricelist:proposal' %}?load={{ proposal.uuid }}" class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">{% trans "Edit" %}</a>
             <form method="post" action="{% url 'pricelist:proposal_update_rates' identifier=proposal.uuid %}" class="inline">

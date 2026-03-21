@@ -1,7 +1,5 @@
 # NovaQuote
 
-Open-source Django application for quoting, invoicing, orders, and CRM. **License:** [AGPL-3.0](LICENSE).
-
 NovaQuote is an open-source Django application for quoting and order processing. It supports product catalogs with configurable options, proposals (quotes), **customer invoices**, and purchase **orders** with per-item ordering/delivery tracking.
 
 ### Sales flow: proposal → invoice → order
@@ -41,6 +39,8 @@ This project uses SQLite by default.
 ```powershell
 python manage.py migrate
 ```
+
+The repository ships a **single squashed** `pricelist` migration (`0001_initial`). If you still have an older database that was migrated with the previous long migration chain, either start from a new `db.sqlite3` or clear recorded `pricelist` rows in `django_migrations` and run `python manage.py migrate pricelist --fake-initial` so Django matches your existing tables.
 
 Create a **superuser** for `/admin/` and the frontend (same user can log in at `/accounts/login/`):
 
@@ -89,6 +89,26 @@ python manage.py compilemessages_py -l nl
 
 ## Admin & configuration
 
+### Frontend roles (who sees what on the customer site)
+
+After migration **0002**, each user can have a **User frontend access** row linking them to a **Frontend role**. Edit the role’s checkboxes to turn areas on or off (price list, catalog, proposals, invoicing, orders, contacts, permanent delete, etc.). **Superusers** always have full frontend access.
+
+Default templates are seeded for **Administrator**, **Sales** (no catalog), **Catalog manager** (catalog + price list only; no purge), and **Procurement** (price list, orders, read-only contacts).
+
+#### RBAC demo accounts (log in at `/accounts/login/`)
+
+| Username | Frontend role | What to check |
+|----------|-----------------|---------------|
+| `admin` (from `seed_demo` or your superuser) | Full access | All menus; can assign roles under **Admin → User frontend access**. |
+| `sales` | Sales | Price list, proposals, invoicing, orders, contacts; **no** catalog / trash / purge. |
+| `catalog` | Catalog manager | Price list + catalog only; soft-delete and trash; **no** proposals, invoicing, orders, or permanent purge. |
+| `buyer` | Procurement | Price list, orders, contacts (read-only); **no** proposals or invoicing. |
+
+- **`python manage.py seed_demo --yes`** — wipes the DB and creates **`admin`** (default password **`demo`**) plus **`sales`**, **`catalog`**, and **`buyer`** with the **same** password as the superuser.
+- **`python manage.py seed_rbac_demo_users`** — **does not** wipe data; ensures the four **Frontend roles** exist and creates **`sales`**, **`catalog`**, and **`buyer`** if missing (default password **`demo`** for new users). Use **`--reset-password`** to set the password again on existing demo users.
+
+Users **without** a profile keep the old behaviour: non-staff get the full menu except catalog (catalog was staff-only before); staff get catalog; only superusers could purge trash.
+
 Log in to `/admin/` and configure `General settings` for:
 - currency/rounding/number format
 - frontend language
@@ -129,3 +149,4 @@ On **supplier / client / lead** organization detail pages, an **organization cha
 **Network** partners can be linked to multiple suppliers and clients via **Organization network links** (buttons **Link company** on the network partner’s page, **Link network partner** on supplier/client/lead pages). The same partner can have many links; each pair is unique.
 
 Manage advanced bulk operations under **Admin → Organizations / Persons / …**.
+

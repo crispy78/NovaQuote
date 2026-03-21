@@ -9,7 +9,6 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.decorators import user_passes_test
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Q
@@ -29,6 +28,7 @@ from .catalog_forms import (
     primary_supplier_row_from_formset,
     refresh_combination_sales_price,
 )
+from .frontend_access import get_capabilities, require_capability
 from .models import Combination, CombinationItem, Product, ProductOption, ProductSupplier
 
 
@@ -36,11 +36,8 @@ def _product_label(p: Product) -> str:
     return (f"{p.brand or ''} {p.model_type or ''}".strip()) or f"Product #{p.pk}"
 
 
-def _is_staff(user):
-    return user.is_authenticated and user.is_staff
-
-
 @require_http_methods(["GET", "POST"])
+@require_capability("access_catalog")
 def catalog_product_list_view(request):
     products = (
         Product.objects.select_related("supplier", "category", "profit_profile")
@@ -58,6 +55,7 @@ def catalog_product_list_view(request):
 
 
 @require_http_methods(["GET", "POST"])
+@require_capability("catalog_change")
 def catalog_product_create_view(request):
     shared = Product()
     if request.method == "POST":
@@ -96,9 +94,11 @@ def catalog_product_create_view(request):
 
 
 @require_http_methods(["GET", "POST"])
+@require_capability("catalog_change")
 def catalog_product_edit_view(request, article_uuid):
     product = get_object_or_404(Product.all_objects, article_number=article_uuid)
-    if product.deleted_at and not request.user.is_staff:
+    cap = get_capabilities(request.user)
+    if product.deleted_at and not (cap.catalog_change or cap.catalog_trash):
         raise Http404()
     if product.deleted_at:
         messages.warning(request, _("This product is removed from the catalog. Restore it from Trash (staff)."))
@@ -149,6 +149,7 @@ def catalog_product_edit_view(request, article_uuid):
 
 
 @require_POST
+@require_capability("catalog_soft_delete")
 def catalog_product_remove_view(request, article_uuid):
     product = get_object_or_404(Product.objects, article_number=article_uuid)
     product.deleted_at = timezone.now()
@@ -157,8 +158,8 @@ def catalog_product_remove_view(request, article_uuid):
     return redirect("pricelist:catalog_product_list")
 
 
-@user_passes_test(_is_staff)
 @require_http_methods(["GET"])
+@require_capability("catalog_trash")
 def catalog_product_trash_view(request):
     products = (
         Product.all_objects.filter(deleted_at__isnull=False)
@@ -176,8 +177,8 @@ def catalog_product_trash_view(request):
     )
 
 
-@user_passes_test(_is_staff)
 @require_POST
+@require_capability("catalog_trash")
 def catalog_product_restore_view(request, article_uuid):
     product = get_object_or_404(Product.all_objects, article_number=article_uuid, deleted_at__isnull=False)
     product.deleted_at = None
@@ -186,11 +187,9 @@ def catalog_product_restore_view(request, article_uuid):
     return redirect("pricelist:catalog_product_trash")
 
 
-@user_passes_test(_is_staff)
 @require_POST
+@require_capability("catalog_purge")
 def catalog_product_purge_view(request, article_uuid):
-    if not request.user.is_superuser:
-        raise PermissionDenied(_("Only superusers can permanently delete catalog data."))
     product = get_object_or_404(Product.all_objects, article_number=article_uuid, deleted_at__isnull=False)
     if product.image:
         product.image.delete(save=False)
@@ -203,6 +202,7 @@ def catalog_product_purge_view(request, article_uuid):
 
 
 @require_http_methods(["GET", "POST"])
+@require_capability("access_catalog")
 def catalog_combination_list_view(request):
     combinations = Combination.objects.all().order_by("name")
     return render(
@@ -217,6 +217,7 @@ def catalog_combination_list_view(request):
 
 
 @require_http_methods(["GET", "POST"])
+@require_capability("catalog_change")
 def catalog_combination_create_view(request):
     if request.method == "POST":
         form = CatalogCombinationForm(request.POST, request.FILES)
@@ -257,9 +258,11 @@ def catalog_combination_create_view(request):
 
 
 @require_http_methods(["GET", "POST"])
+@require_capability("catalog_change")
 def catalog_combination_edit_view(request, combo_uuid):
     combination = get_object_or_404(Combination.all_objects, uuid=combo_uuid)
-    if combination.deleted_at and not request.user.is_staff:
+    cap = get_capabilities(request.user)
+    if combination.deleted_at and not (cap.catalog_change or cap.catalog_trash):
         raise Http404()
     if combination.deleted_at:
         messages.warning(
@@ -296,6 +299,7 @@ def catalog_combination_edit_view(request, combo_uuid):
 
 
 @require_POST
+@require_capability("catalog_soft_delete")
 def catalog_combination_remove_view(request, combo_uuid):
     combo = get_object_or_404(Combination.objects, uuid=combo_uuid)
     combo.deleted_at = timezone.now()
@@ -306,8 +310,8 @@ def catalog_combination_remove_view(request, combo_uuid):
     return redirect("pricelist:catalog_combination_list")
 
 
-@user_passes_test(_is_staff)
 @require_http_methods(["GET"])
+@require_capability("catalog_trash")
 def catalog_combination_trash_view(request):
     combinations = Combination.all_objects.filter(deleted_at__isnull=False).order_by("-deleted_at")
     return render(
@@ -321,8 +325,8 @@ def catalog_combination_trash_view(request):
     )
 
 
-@user_passes_test(_is_staff)
 @require_POST
+@require_capability("catalog_trash")
 def catalog_combination_restore_view(request, combo_uuid):
     combo = get_object_or_404(Combination.all_objects, uuid=combo_uuid, deleted_at__isnull=False)
     combo.deleted_at = None
@@ -331,11 +335,9 @@ def catalog_combination_restore_view(request, combo_uuid):
     return redirect("pricelist:catalog_combination_trash")
 
 
-@user_passes_test(_is_staff)
 @require_POST
+@require_capability("catalog_purge")
 def catalog_combination_purge_view(request, combo_uuid):
-    if not request.user.is_superuser:
-        raise PermissionDenied(_("Only superusers can permanently delete catalog data."))
     combo = get_object_or_404(Combination.all_objects, uuid=combo_uuid, deleted_at__isnull=False)
     if combo.image:
         combo.image.delete(save=False)
@@ -494,8 +496,11 @@ def _delete_catalog_image(rel: str) -> str:
 
 
 @require_http_methods(["GET", "POST"])
+@require_capability("access_catalog")
 def catalog_image_list_view(request):
     if request.method == "POST":
+        if not get_capabilities(request.user).catalog_change:
+            raise PermissionDenied(_("You do not have permission to change catalog images."))
         paths_raw = request.POST.getlist("delete_paths")
         if not paths_raw:
             single = request.POST.get("delete_path")

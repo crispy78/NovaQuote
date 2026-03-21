@@ -53,11 +53,13 @@ from pricelist.models import (
     OrderLineItem,
     Supplier,
 )
+from pricelist.rbac_demo_seed import ensure_frontend_roles_and_demo_users
 from pricelist.services.invoice_service import create_invoice_for_proposal, mark_invoice_sent
 from pricelist.services.order_service import create_order_from_proposal
 
 
 User = get_user_model()
+
 
 # Namespace for deterministic demo UUIDs (novaquote.mdc: stable external references)
 _DEMO_NS = uuid.UUID("018f2b7e-8c4d-7a9e-8b0d-111111111101")
@@ -309,6 +311,9 @@ class Command(BaseCommand):
         with transaction.atomic():
             User.objects.create_superuser(username=username, email=email, password=password)
             admin_user = User.objects.get(username=username)
+            ensure_frontend_roles_and_demo_users(
+                password, admin_user=admin_user, reset_demo_passwords=True
+            )
 
             GeneralSettings.objects.create(
                 uuid=demo_u("generalsettings.singleton"),
@@ -1149,6 +1154,9 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("Demo data loaded."))
         self.stdout.write(f"  Superuser: {username} / {password} (change this password!)")
+        self.stdout.write(
+            f"  Frontend demo users (password «{password}»): sales (Sales), catalog (Catalog manager), buyer (Procurement)."
+        )
         self.stdout.write(
             '  General settings: site name "NovaQuote", Teal (#008080) color scheme, custom logo cleared (bundled default shown).'
         )

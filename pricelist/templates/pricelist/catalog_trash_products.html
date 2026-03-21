@@ -32,7 +32,7 @@
                             {% csrf_token %}
                             <button type="submit" class="text-[var(--brand)] hover:underline text-sm bg-transparent border-0 cursor-pointer p-0">{% trans "Restore" %}</button>
                         </form>
-                        {% if user.is_superuser %}
+                        {% if frontend_capabilities.catalog_purge %}
                         <form method="post" action="{% url 'pricelist:catalog_product_purge' article_uuid=p.article_number %}" class="inline" onsubmit="return confirm('{% trans "Permanently delete this product and all related data? This cannot be undone." %}');">
                             {% csrf_token %}
                             <button type="submit" class="text-red-700 hover:underline text-sm bg-transparent border-0 cursor-pointer p-0">{% trans "Delete forever" %}</button>
@@ -46,8 +46,8 @@
             </tbody>
         </table>
     </div>
-    {% if not user.is_superuser %}
-    <p class="mt-4 text-sm text-slate-500">{% trans "Only superusers can permanently delete catalog items." %}</p>
+    {% if not frontend_capabilities.catalog_purge %}
+    <p class="mt-4 text-sm text-slate-500">{% trans "Your role cannot permanently delete catalog items." %}</p>
     {% endif %}
 </div>
 {% endblock %}

@@ -248,11 +248,20 @@ button[title*="Toggle theme"],
   border-radius: 0 !important;
 }
 
-/* Navigation bar (breadcrumbs): rounded top corners */
+/* Breadcrumb strip: full width, square corners (rounded bar exposed white body at edges) */
+nav[aria-label="Breadcrumbs"] {
+  width: 100%;
+  box-sizing: border-box;
+  background-color: var(--brand) !important;
+}
+
 nav[aria-label="Breadcrumbs"] .breadcrumbs,
 .breadcrumbs {
-  border-radius: 12px 12px 0 0 !important;
-  margin: 0 10px 0 0 !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
 }
 
 #nav-sidebar {

@@ -1,6 +1,7 @@
 """
 Middleware for NovaQuote.
 
+- FrontendAccessMiddleware: attach request.frontend_capabilities from UserFrontendProfile / role.
 - LanguageFromSettingsMiddleware: frontend language from GeneralSettings (non-admin).
 - LoginRequiredMiddleware: require authentication for all site URLs except admin, auth, static.
 """
@@ -8,6 +9,19 @@ Middleware for NovaQuote.
 from django.conf import settings
 from django.contrib.auth.views import redirect_to_login
 from django.utils import translation
+
+from .frontend_access import get_capabilities
+
+
+class FrontendAccessMiddleware:
+    """Set request.frontend_capabilities for templates and views (anonymous → all false)."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        request.frontend_capabilities = get_capabilities(getattr(request, "user", None))
+        return self.get_response(request)
 
 
 class LoginRequiredMiddleware:

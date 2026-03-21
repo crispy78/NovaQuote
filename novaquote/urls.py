@@ -7,6 +7,10 @@ from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
 
+from pricelist import error_views
+
+handler403 = error_views.permission_denied
+
 urlpatterns = [
     # Backward-compatible redirect for old bookmark under /admin.
     path(

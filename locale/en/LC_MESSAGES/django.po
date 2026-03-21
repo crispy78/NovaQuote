@@ -1,14 +1,11 @@
 # English (default)
 msgid ""
 msgstr ""
-"Project-Id-Version: Ticketcounter\n"
+"Project-Id-Version: NovaQuote\n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-
-msgid "Ticketcounter - Price list"
-msgstr "Ticketcounter - Price list"
 
 msgid "Overview of standalone products and packages / combinations."
 msgstr "Overview of standalone products and packages / combinations."

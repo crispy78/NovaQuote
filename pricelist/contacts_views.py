@@ -2,6 +2,8 @@
 
 from django.contrib import messages
 from django.db.models import Prefetch
+
+from .frontend_access import require_capability, require_contacts_write
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -62,6 +64,7 @@ def _org_list(request, *, role: str, section: str, title: str, subtitle: str):
     )
 
 
+@require_capability("access_contacts")
 def contacts_suppliers_view(request):
     return _org_list(
         request,
@@ -72,6 +75,7 @@ def contacts_suppliers_view(request):
     )
 
 
+@require_capability("access_contacts")
 def contacts_clients_view(request):
     return _org_list(
         request,
@@ -82,6 +86,7 @@ def contacts_clients_view(request):
     )
 
 
+@require_capability("access_contacts")
 def contacts_leads_view(request):
     return _org_list(
         request,
@@ -92,6 +97,7 @@ def contacts_leads_view(request):
     )
 
 
+@require_capability("access_contacts")
 def contacts_network_view(request):
     return _org_list(
         request,
@@ -102,6 +108,7 @@ def contacts_network_view(request):
     )
 
 
+@require_capability("access_contacts")
 def contacts_persons_view(request):
     persons = contacts_svc.persons_directory()
     return render(
@@ -115,6 +122,7 @@ def contacts_persons_view(request):
     )
 
 
+@require_capability("access_contacts")
 def contacts_organization_detail_view(request, org_uuid):
     organization = get_object_or_404(
         Organization.objects.prefetch_related(
@@ -146,6 +154,7 @@ def contacts_organization_detail_view(request, org_uuid):
     return render(request, "pricelist/contacts_organization_detail.html", ctx)
 
 
+@require_capability("access_contacts")
 def contacts_person_detail_view(request, person_uuid):
     person = get_object_or_404(
         Person.objects.prefetch_related(
@@ -163,6 +172,7 @@ def contacts_person_detail_view(request, person_uuid):
 
 
 @require_GET
+@require_capability("access_contacts")
 def contacts_organization_identity_check_view(request):
     """JSON: live duplicate check for VAT / Chamber of Commerce number."""
     data = identity_check_payload(
@@ -185,6 +195,7 @@ def _preset_roles_from_query(request) -> list[str]:
 
 
 @require_http_methods(["GET", "HEAD", "POST"])
+@require_contacts_write
 def contacts_organization_create_view(request):
     return_from = request.GET.get("from") or request.POST.get("return_from") or "clients"
     return_next = request.GET.get("next") or request.POST.get("return_next") or ""
@@ -212,6 +223,7 @@ def contacts_organization_create_view(request):
 
 
 @require_http_methods(["GET", "HEAD", "POST"])
+@require_contacts_write
 def contacts_organization_edit_view(request, org_uuid):
     organization = get_object_or_404(Organization, uuid=org_uuid)
     return_from = request.GET.get("from") or request.POST.get("return_from") or "clients"
@@ -272,6 +284,7 @@ def contacts_person_membership_add_view(request, person_uuid):
 
 
 @require_http_methods(["GET", "HEAD", "POST"])
+@require_contacts_write
 def contacts_person_create_view(request):
     return_next = request.GET.get("next") or request.POST.get("return_next") or ""
     if request.method == "POST":
@@ -334,6 +347,7 @@ def contacts_person_edit_view(request, person_uuid):
 
 
 @require_http_methods(["GET", "HEAD", "POST"])
+@require_contacts_write
 def contacts_department_create_view(request, org_uuid):
     organization = get_object_or_404(Organization, uuid=org_uuid)
     return_from = request.GET.get("from") or request.POST.get("return_from") or "clients"
@@ -359,6 +373,7 @@ def contacts_department_create_view(request, org_uuid):
 
 
 @require_http_methods(["GET", "HEAD", "POST"])
+@require_contacts_write
 def contacts_department_edit_view(request, org_uuid, dept_uuid):
     organization = get_object_or_404(Organization, uuid=org_uuid)
     department = get_object_or_404(Department, uuid=dept_uuid, organization=organization)
@@ -385,6 +400,7 @@ def contacts_department_edit_view(request, org_uuid, dept_uuid):
 
 
 @require_http_methods(["GET", "HEAD", "POST"])
+@require_contacts_write
 def contacts_membership_create_view(request, org_uuid):
     organization = get_object_or_404(Organization, uuid=org_uuid)
     return_from = request.GET.get("from") or request.POST.get("return_from") or "clients"
@@ -421,6 +437,7 @@ def _network_link_form_mode(organization: Organization, section: str) -> str:
 
 
 @require_http_methods(["GET", "HEAD", "POST"])
+@require_contacts_write
 def contacts_network_link_add_view(request, org_uuid):
     organization = get_object_or_404(
         Organization.objects.prefetch_related("role_assignments"),
@@ -458,6 +475,7 @@ def contacts_network_link_add_view(request, org_uuid):
 
 
 @require_http_methods(["POST"])
+@require_contacts_write
 def contacts_network_link_delete_view(request, org_uuid, link_uuid):
     organization = get_object_or_404(Organization, uuid=org_uuid)
     link = get_object_or_404(
@@ -473,6 +491,7 @@ def contacts_network_link_delete_view(request, org_uuid, link_uuid):
     return _redirect_org_detail(organization, return_from)
 
 
+@require_contacts_write
 def contacts_life_event_create_view(request, person_uuid):
     person = get_object_or_404(Person, uuid=person_uuid)
     if request.method == "POST":

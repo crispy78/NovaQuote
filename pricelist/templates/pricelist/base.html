@@ -28,6 +28,7 @@
                 </a>
 
                 <nav class="flex items-center gap-1 sm:gap-2">
+                    {% if frontend_capabilities.access_price_list %}
                     <!-- Price list dropdown -->
                     <div class="relative" id="nav-price-list">
                         <button type="button" class="nav-dropdown-trigger flex items-center gap-1 px-3 py-2 text-sm font-medium text-slate-700 hover:text-brand hover:bg-slate-50 rounded-lg transition" aria-expanded="false" aria-haspopup="true" aria-controls="nav-price-list-menu">
@@ -73,8 +74,10 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
 
-                    <!-- Catalog management (products / combinations / images) -->
+                    {% if frontend_capabilities.access_catalog %}
+                    <!-- Catalog management (edit list, trash, images) — not the customer price list -->
                     <div class="relative" id="nav-catalog">
                         <button type="button" class="nav-dropdown-trigger flex items-center gap-1 px-3 py-2 text-sm font-medium text-slate-700 hover:text-brand hover:bg-slate-50 rounded-lg transition" aria-expanded="false" aria-haspopup="true" aria-controls="nav-catalog-menu">
                             {% trans "Products" %}
@@ -84,14 +87,18 @@
                             <div class="bg-white rounded-xl shadow-lg border border-slate-200 py-2 overflow-hidden">
                                 <div class="px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wide">{% trans "Products" %}</div>
                                 <a href="{% url 'pricelist:catalog_product_list' %}" class="flex gap-3 px-4 py-2.5 hover:bg-slate-50 transition text-sm text-slate-800">{% trans "All products" %}</a>
+                                {% if frontend_capabilities.catalog_change %}
                                 <a href="{% url 'pricelist:catalog_product_create' %}" class="flex gap-3 px-4 py-2.5 hover:bg-slate-50 transition text-sm text-slate-800">{% trans "Add product" %}</a>
-                                {% if user.is_staff %}
+                                {% endif %}
+                                {% if frontend_capabilities.catalog_trash %}
                                 <a href="{% url 'pricelist:catalog_product_trash' %}" class="flex gap-3 px-4 py-2.5 hover:bg-slate-50 transition text-sm text-amber-800">{% trans "Removed products (restore)" %}</a>
                                 {% endif %}
                                 <div class="border-t border-slate-100 mt-1 pt-1 px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wide">{% trans "Combinations" %}</div>
                                 <a href="{% url 'pricelist:catalog_combination_list' %}" class="flex gap-3 px-4 py-2.5 hover:bg-slate-50 transition text-sm text-slate-800">{% trans "All combinations" %}</a>
+                                {% if frontend_capabilities.catalog_change %}
                                 <a href="{% url 'pricelist:catalog_combination_create' %}" class="flex gap-3 px-4 py-2.5 hover:bg-slate-50 transition text-sm text-slate-800">{% trans "Add combination" %}</a>
-                                {% if user.is_staff %}
+                                {% endif %}
+                                {% if frontend_capabilities.catalog_trash %}
                                 <a href="{% url 'pricelist:catalog_combination_trash' %}" class="flex gap-3 px-4 py-2.5 hover:bg-slate-50 transition text-sm text-amber-800">{% trans "Removed combinations (restore)" %}</a>
                                 {% endif %}
                                 <div class="border-t border-slate-100 mt-1 pt-1 px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wide">{% trans "Images" %}</div>
@@ -99,7 +106,9 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
 
+                    {% if frontend_capabilities.access_contacts %}
                     <!-- Contacts dropdown -->
                     <div class="relative" id="nav-contacts">
                         <button type="button" class="nav-dropdown-trigger flex items-center gap-1 px-3 py-2 text-sm font-medium text-slate-700 hover:text-brand hover:bg-slate-50 rounded-lg transition" aria-expanded="false" aria-haspopup="true" aria-controls="nav-contacts-menu">
@@ -156,7 +165,9 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
 
+                    {% if frontend_capabilities.access_proposals %}
                     <!-- Proposal dropdown -->
                     <div class="relative" id="nav-proposal">
                         <button type="button" class="nav-dropdown-trigger flex items-center gap-1 px-3 py-2 text-sm font-medium text-slate-700 hover:text-brand hover:bg-slate-50 rounded-lg transition" aria-expanded="false" aria-haspopup="true" aria-controls="nav-proposal-menu">
@@ -186,7 +197,9 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
 
+                    {% if frontend_capabilities.access_invoicing %}
                     <!-- Invoicing (sales documents before purchase orders) -->
                     <div class="relative" id="nav-invoicing">
                         <button type="button" class="nav-dropdown-trigger flex items-center gap-1 px-3 py-2 text-sm font-medium text-slate-700 hover:text-brand hover:bg-slate-50 rounded-lg transition" aria-expanded="false" aria-haspopup="true" aria-controls="nav-invoicing-menu">
@@ -207,10 +220,13 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
 
+                    {% if frontend_capabilities.access_orders %}
                     <a href="{% url 'pricelist:order_list' %}" class="flex items-center gap-1 px-3 py-2 text-sm font-medium text-slate-700 hover:text-brand hover:bg-slate-50 rounded-lg transition">
                         {% trans "Orders" %}
                     </a>
+                    {% endif %}
 
                     {% if user.is_authenticated %}
                     <div class="flex items-center gap-2 pl-2 ml-2 border-l border-slate-200">

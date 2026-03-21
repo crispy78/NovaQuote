@@ -10,11 +10,13 @@
     </p>
     <div class="flex flex-wrap items-start justify-between gap-4">
         <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-[var(--brand)]">{{ person.first_name }} {{ person.last_name }}</h1>
+        {% if frontend_capabilities.contacts_write %}
         <div class="flex flex-wrap gap-2 shrink-0">
             <a href="{% url 'pricelist:contacts_person_edit' person_uuid=person.uuid %}" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">{% trans "Edit person" %}</a>
             <a href="{% url 'pricelist:contacts_person_membership_add' person_uuid=person.uuid %}" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">{% trans "Link to company" %}</a>
             <a href="{% url 'pricelist:contacts_life_event_create' person_uuid=person.uuid %}" class="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:opacity-90">{% trans "Add life event" %}</a>
         </div>
+        {% endif %}
     </div>
 
     <div class="mt-8 grid gap-6 lg:grid-cols-2">

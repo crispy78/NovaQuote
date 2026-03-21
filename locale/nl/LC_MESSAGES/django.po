@@ -1,7 +1,7 @@
-# Dutch translations for Ticketcounter frontend
+# Dutch translations for NovaQuote
 msgid ""
 msgstr ""
-"Project-Id-Version: Ticketcounter\n"
+"Project-Id-Version: NovaQuote\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-03-14 12:00+0000\n"
 "PO-Revision-Date: 2026-03-14 12:00+0000\n"
@@ -11,12 +11,6 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-
-msgid "Ticketcounter"
-msgstr "Ticketcounter"
-
-msgid "Welcome to Ticketcounter"
-msgstr "Welkom bij Ticketcounter"
 
 msgctxt "home page greeting before site name"
 msgid "Welcome to"
@@ -258,9 +252,6 @@ msgstr "Gebruikt op de offertepagina voor onderhoudscontractopties. Tijd in minu
 
 msgid "No saved proposal found with this identifier or reference."
 msgstr "Geen opgeslagen offerte gevonden met dit kenmerk of deze referentie."
-
-msgid "Ticketcounter - Price list"
-msgstr "Ticketcounter - Prijslijst"
 
 msgid "Overview of standalone products and packages / combinations."
 msgstr "Overzicht van losse producten en pakketten / combinaties."

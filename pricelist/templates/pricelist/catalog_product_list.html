@@ -11,8 +11,10 @@
             <p class="mt-1 text-slate-600">{{ page_subtitle }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
+            {% if frontend_capabilities.catalog_change %}
             <a href="{% url 'pricelist:catalog_product_create' %}" class="rounded-lg bg-[var(--brand)] px-4 py-2.5 text-sm font-medium text-white hover:opacity-90">{% trans "Add product" %}</a>
-            {% if user.is_staff %}
+            {% endif %}
+            {% if frontend_capabilities.catalog_trash %}
             <a href="{% url 'pricelist:catalog_product_trash' %}" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">{% trans "Removed products" %}</a>
             {% endif %}
         </div>
@@ -33,17 +35,25 @@
                     {% for p in products %}
                     <tr class="border-b border-slate-100 hover:bg-slate-50/50">
                         <td class="px-4 py-3">
+                            {% if frontend_capabilities.catalog_change %}
                             <a href="{% url 'pricelist:catalog_product_edit' article_uuid=p.article_number %}" class="font-medium text-[var(--brand)] hover:underline">{{ p.brand }} {{ p.model_type }}</a>
+                            {% else %}
+                            <span class="font-medium text-slate-900">{{ p.brand }} {{ p.model_type }}</span>
+                            {% endif %}
                             {% if not p.show_in_price_list %}<span class="ml-2 text-xs text-amber-700">{% trans "Hidden from list" %}</span>{% endif %}
                         </td>
                         <td class="px-4 py-3 text-slate-700">{{ p.supplier.name }}</td>
                         <td class="px-4 py-3 text-slate-600">{{ p.category.name|default:"—" }}</td>
                         <td class="px-4 py-3 text-right whitespace-nowrap">
+                            {% if frontend_capabilities.catalog_change %}
                             <a href="{% url 'pricelist:catalog_product_edit' article_uuid=p.article_number %}" class="text-[var(--brand)] hover:underline mr-3">{% trans "Edit" %}</a>
-                            <form method="post" action="{% url 'pricelist:catalog_product_remove' article_uuid=p.article_number %}" class="inline" onsubmit="return confirm('{% trans "Remove this product from the catalog? You can restore it later (staff)." %}');">
+                            {% endif %}
+                            {% if frontend_capabilities.catalog_soft_delete %}
+                            <form method="post" action="{% url 'pricelist:catalog_product_remove' article_uuid=p.article_number %}" class="inline" onsubmit="return confirm('{% trans "Remove this product from the catalog? You can restore it later if you have trash access." %}');">
                                 {% csrf_token %}
                                 <button type="submit" class="text-red-600 hover:underline text-sm bg-transparent border-0 cursor-pointer p-0">{% trans "Remove" %}</button>
                             </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}

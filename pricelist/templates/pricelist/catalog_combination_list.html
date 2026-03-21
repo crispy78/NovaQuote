@@ -11,8 +11,10 @@
             <p class="mt-1 text-slate-600">{{ page_subtitle }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
+            {% if frontend_capabilities.catalog_change %}
             <a href="{% url 'pricelist:catalog_combination_create' %}" class="rounded-lg bg-[var(--brand)] px-4 py-2.5 text-sm font-medium text-white hover:opacity-90">{% trans "Add combination" %}</a>
-            {% if user.is_staff %}
+            {% endif %}
+            {% if frontend_capabilities.catalog_trash %}
             <a href="{% url 'pricelist:catalog_combination_trash' %}" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">{% trans "Removed combinations" %}</a>
             {% endif %}
         </div>
@@ -31,14 +33,22 @@
                     {% for c in combinations %}
                     <tr class="border-b border-slate-100 hover:bg-slate-50/50">
                         <td class="px-4 py-3">
+                            {% if frontend_capabilities.catalog_change %}
                             <a href="{% url 'pricelist:catalog_combination_edit' combo_uuid=c.uuid %}" class="font-medium text-[var(--brand)] hover:underline">{{ c.name }}</a>
+                            {% else %}
+                            <span class="font-medium text-slate-900">{{ c.name }}</span>
+                            {% endif %}
                         </td>
                         <td class="px-4 py-3 text-right whitespace-nowrap">
+                            {% if frontend_capabilities.catalog_change %}
                             <a href="{% url 'pricelist:catalog_combination_edit' combo_uuid=c.uuid %}" class="text-[var(--brand)] hover:underline mr-3">{% trans "Edit" %}</a>
-                            <form method="post" action="{% url 'pricelist:catalog_combination_remove' combo_uuid=c.uuid %}" class="inline" onsubmit="return confirm('{% trans "Remove this combination from the catalog? You can restore it later (staff)." %}');">
+                            {% endif %}
+                            {% if frontend_capabilities.catalog_soft_delete %}
+                            <form method="post" action="{% url 'pricelist:catalog_combination_remove' combo_uuid=c.uuid %}" class="inline" onsubmit="return confirm('{% trans "Remove this combination from the catalog? You can restore it later if you have trash access." %}');">
                                 {% csrf_token %}
                                 <button type="submit" class="text-red-600 hover:underline text-sm bg-transparent border-0 cursor-pointer p-0">{% trans "Remove" %}</button>
                             </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}

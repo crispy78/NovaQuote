@@ -21,6 +21,7 @@
             <p class="mt-2 text-sm text-slate-600"><span class="font-medium">{% trans "Pipeline" %}:</span> {{ organization.get_lead_pipeline_status_display }}</p>
             {% endif %}
         </div>
+        {% if frontend_capabilities.contacts_write %}
         <div class="flex flex-wrap gap-2 shrink-0">
             <a href="{% url 'pricelist:contacts_organization_edit' org_uuid=organization.uuid %}?from={{ return_from }}" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">{% trans "Edit company" %}</a>
             <a href="{% url 'pricelist:contacts_department_create' org_uuid=organization.uuid %}?from={{ return_from }}" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">{% trans "Add department" %}</a>
@@ -32,6 +33,7 @@
             <a href="{% url 'pricelist:contacts_network_link_add' org_uuid=organization.uuid %}?from={{ return_from }}" class="rounded-lg border border-violet-300 bg-violet-50 px-4 py-2 text-sm font-medium text-violet-900 hover:bg-violet-100">{% trans "Link company" %}</a>
             {% endif %}
         </div>
+        {% endif %}
     </div>
 
     {% if show_org_chart and org_chart %}

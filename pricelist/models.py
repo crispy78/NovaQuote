@@ -2470,6 +2470,130 @@ class OrganizationShipment(models.Model):
         return f"{self.organization} – {self.reference}"
 
 
+class FrontendRole(models.Model):
+    """
+    Configurable frontend role: boolean capabilities edited in admin and assigned per user.
+    Staff/superusers still use Django admin; the frontend enforces these flags for normal users.
+    """
+
+    SLUG_ADMINISTRATOR = "administrator"
+    SLUG_SALES = "sales"
+    SLUG_CATALOG_MANAGER = "catalog_manager"
+    SLUG_PROCUREMENT = "procurement"
+
+    uuid = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        unique=True,
+        verbose_name=_("UUID"),
+    )
+    name = models.CharField(max_length=128, verbose_name=_("Name"))
+    slug = models.SlugField(
+        max_length=64,
+        unique=True,
+        help_text=_("Stable key for imports and seeds (lowercase, no spaces)."),
+        verbose_name=_("Slug"),
+    )
+    description = models.TextField(blank=True, verbose_name=_("Description"))
+    sort_order = models.PositiveSmallIntegerField(default=0, verbose_name=_("Sort order"))
+
+    access_price_list = models.BooleanField(
+        default=True,
+        verbose_name=_("Price list"),
+        help_text=_("Browse price list and product detail pages."),
+    )
+    access_catalog = models.BooleanField(
+        default=False,
+        verbose_name=_("Catalog section"),
+        help_text=_("See the Products (catalog management) menu and catalog URLs."),
+    )
+    catalog_change = models.BooleanField(
+        default=False,
+        verbose_name=_("Catalog: add and edit"),
+        help_text=_("Create and edit products, combinations, and use the image library (including deletes there)."),
+    )
+    catalog_soft_delete = models.BooleanField(
+        default=False,
+        verbose_name=_("Catalog: remove to trash"),
+        help_text=_("Soft-delete products or combinations (recoverable)."),
+    )
+    catalog_trash = models.BooleanField(
+        default=False,
+        verbose_name=_("Catalog: trash and restore"),
+        help_text=_("Open trash views and restore soft-deleted catalog rows."),
+    )
+    catalog_purge = models.BooleanField(
+        default=False,
+        verbose_name=_("Catalog: permanent delete"),
+        help_text=_("Permanently delete soft-deleted products or combinations from trash."),
+    )
+    access_proposals = models.BooleanField(
+        default=False,
+        verbose_name=_("Proposals"),
+        help_text=_("New proposal, saved calculations, and proposal tools."),
+    )
+    access_invoicing = models.BooleanField(
+        default=False,
+        verbose_name=_("Invoicing"),
+        help_text=_("Invoices list, detail, and status changes."),
+    )
+    access_orders = models.BooleanField(
+        default=False,
+        verbose_name=_("Orders"),
+        help_text=_("Purchase orders list and detail (tracking what to order)."),
+    )
+    access_contacts = models.BooleanField(
+        default=False,
+        verbose_name=_("Contacts (CRM)"),
+        help_text=_("Contacts menu and organization/person pages."),
+    )
+    contacts_write = models.BooleanField(
+        default=False,
+        verbose_name=_("Contacts: add and edit"),
+        help_text=_("Create or edit organizations, people, departments, memberships, and links."),
+    )
+
+    class Meta:
+        db_table = "catalogus_frontendrole"
+        ordering = ("sort_order", "name")
+        verbose_name = _("Frontend role")
+        verbose_name_plural = _("Frontend roles")
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class UserFrontendProfile(models.Model):
+    """Maps a Django user to a FrontendRole for the customer-facing site."""
+
+    uuid = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        unique=True,
+        verbose_name=_("UUID"),
+    )
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="frontend_profile",
+        verbose_name=_("User"),
+    )
+    role = models.ForeignKey(
+        FrontendRole,
+        on_delete=models.PROTECT,
+        related_name="user_assignments",
+        verbose_name=_("Role"),
+    )
+
+    class Meta:
+        db_table = "catalogus_userfrontendprofile"
+        verbose_name = _("User frontend access")
+        verbose_name_plural = _("User frontend access")
+
+    def __str__(self) -> str:
+        return f"{self.user} → {self.role}"
+
+
 @receiver(post_save, sender=OrganizationInvoice)
 def _organization_invoice_promote_client(sender, instance, created, **kwargs):
     if not created:

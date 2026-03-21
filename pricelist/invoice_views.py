@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from django.contrib import messages
 from django.http import Http404
+
+from .frontend_access import require_capability
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods, require_POST
@@ -22,6 +24,7 @@ from .views import _get_proposal_from_identifier, _proposal_context_from_proposa
 
 
 @require_http_methods(["GET"])
+@require_capability("access_invoicing")
 def invoice_list_view(request):
     invoices = (
         Invoice.objects.select_related("proposal", "created_by")
@@ -36,6 +39,7 @@ def invoice_list_view(request):
 
 
 @require_http_methods(["GET", "POST"])
+@require_capability("access_invoicing")
 def invoice_create_view(request, identifier):
     """Create a draft invoice from a saved proposal (GET shows confirm; POST creates)."""
     proposal = _get_proposal_from_identifier(
@@ -73,6 +77,7 @@ def invoice_create_view(request, identifier):
 
 
 @require_http_methods(["GET"])
+@require_capability("access_invoicing")
 def invoice_detail_view(request, pk):
     invoice = Invoice.objects.select_related(
         "proposal",
@@ -109,6 +114,7 @@ def invoice_detail_view(request, pk):
 
 
 @require_POST
+@require_capability("access_invoicing")
 def invoice_update_status_view(request, pk):
     invoice = get_object_or_404(Invoice, uuid=pk)
     new_status = (request.POST.get("status") or "").strip()

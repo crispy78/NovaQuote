@@ -114,6 +114,7 @@ def build_supplier_groups(order: Order) -> List[Dict[str, Any]]:
             unit_price = None
             line_total = None
         else:
+            product = pl.product if pl else None
             if pl.product_supplier_id and pl.product_supplier:
                 supplier = pl.product_supplier.supplier
             else:
@@ -136,6 +137,7 @@ def build_supplier_groups(order: Order) -> List[Dict[str, Any]]:
             {
                 "order_line_item": oli,
                 "label": label,
+                "product": product,
                 "quantity": pl.quantity,
                 "unit_price": unit_price,
                 "line_total": line_total,

@@ -3,7 +3,7 @@ from decimal import Decimal
 from io import BytesIO
 
 from django.contrib import messages
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
@@ -62,6 +62,7 @@ from .services.order_service import (
     create_order_from_proposal,
     update_order_from_post,
 )
+from .frontend_access import get_capabilities, require_capability
 
 
 def _organization_has_client_or_lead_role(org: Organization) -> bool:
@@ -161,6 +162,7 @@ def home_view(request):
     return render(request, "pricelist/home.html", {"settings": get_general_settings()})
 
 
+@require_capability("access_price_list")
 def price_list_view(request):
     """Full price list: products and combinations."""
     category_id = request.GET.get("category")
@@ -169,6 +171,7 @@ def price_list_view(request):
     return render(request, "pricelist/price_list.html", context)
 
 
+@require_capability("access_price_list")
 def price_list_products_view(request):
     """Price list: standalone products only."""
     category_id = request.GET.get("category")
@@ -178,6 +181,7 @@ def price_list_products_view(request):
     return render(request, "pricelist/price_list.html", context)
 
 
+@require_capability("access_price_list")
 def price_list_combinations_view(request):
     """Price list: packages / combinations only."""
     context = _get_price_list_context()
@@ -188,6 +192,7 @@ def price_list_combinations_view(request):
     return render(request, "pricelist/price_list.html", context)
 
 
+@require_capability("access_proposals")
 def proposal_view(request):
     """
     Proposal (calculatie) page: combinations, simple products (qty), and configurable products
@@ -415,6 +420,7 @@ def _format_price_pdf(value, settings):
     return f"{currency} {formatted}"
 
 
+@require_capability("access_price_list")
 def price_list_pdf_view(request):
     """Generate a simple PDF view of the price list with reportlab (no external binaries)."""
     context = _get_price_list_context()
@@ -537,6 +543,7 @@ def price_list_pdf_view(request):
     return response
 
 
+@require_capability("access_price_list")
 def product_detail_view(request, uuid):
     """
     Detail page for one product; reuses the same styling and currency settings as the price list.
@@ -691,6 +698,7 @@ def _proposal_context_from_proposal(proposal, settings):
 
 
 @require_http_methods(["GET", "POST"])
+@require_capability("access_proposals")
 def proposal_save_view(request):
     """Save current calculation: POST with reference and lines (type, id, quantity, unit_price)."""
     if request.method != "POST":
@@ -894,6 +902,7 @@ def proposal_save_view(request):
     return redirect("pricelist:proposal_detail", identifier=proposal.uuid)
 
 
+@require_capability("access_proposals")
 def proposal_list_view(request):
     """List saved proposals (calculations)."""
     proposals = Proposal.objects.prefetch_related("lines").order_by("-updated_at")[:200]
@@ -902,6 +911,7 @@ def proposal_list_view(request):
     return render(request, "pricelist/proposal_list.html", context)
 
 
+@require_capability("access_proposals")
 def proposal_detail_view(request, identifier):
     """View one saved proposal (identifier = UUID or reference)."""
     proposal = _get_proposal_from_identifier(
@@ -1025,6 +1035,7 @@ def proposal_detail_view(request, identifier):
 
 
 @require_POST
+@require_capability("access_proposals")
 def proposal_update_rates_view(request, identifier):
     """Update proposal lines to current catalog prices; mark removed products/combinations.
     Also refresh contract snapshots so they have current UUIDs and no false 'added later' labels."""
@@ -1135,6 +1146,7 @@ def proposal_history_view(request, identifier):
 # OrderLineItems (one per product or per combination item) so we can track ordered/expected/delivered per item.
 
 
+@require_capability("access_orders")
 def order_list_view(request):
     """List all orders (like saved calculations list)."""
     orders = (
@@ -1148,12 +1160,15 @@ def order_list_view(request):
 
 
 @require_http_methods(["GET", "POST"])
+@require_capability("access_orders")
 def order_create_view(request, identifier):
     """
     Create an order from a saved proposal. One OrderLine per proposal line; for each line we create
     OrderLineItems: one per product (combination_item=None) or one per combination item, so the
     order detail page can show and save ordered/expected/delivered per item.
     """
+    if not get_capabilities(request.user).access_invoicing:
+        raise PermissionDenied(_("Creating an order requires invoicing access."))
     proposal = _get_proposal_from_identifier(
         identifier,
         Proposal.objects.prefetch_related(
@@ -1181,6 +1196,7 @@ def _order_supplier_groups(order):
 
 
 @require_http_methods(["GET", "POST"])
+@require_capability("access_orders")
 def order_detail_view(request, pk):
     """
     Order detail: per-supplier table of order line items. User can set order status, order note,

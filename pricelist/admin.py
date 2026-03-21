@@ -15,6 +15,7 @@ from .models import (
     CombinationItem,
     ContractDuration,
     Department,
+    FrontendRole,
     GeneralSettings,
     Invoice,
     Organization,
@@ -37,6 +38,7 @@ from .models import (
     ProductOption,
     ProfitProfile,
     Supplier,
+    UserFrontendProfile,
     format_number_with_separators,
     get_general_settings,
     price_decimal_places,
@@ -1006,6 +1008,44 @@ class OrganizationRoleAdmin(admin.ModelAdmin):
     search_fields = ("organization__name",)
     readonly_fields = ("uuid",)
     autocomplete_fields = ("organization",)
+
+
+@admin.register(FrontendRole)
+class FrontendRoleAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug", "sort_order")
+    ordering = ("sort_order", "name")
+    search_fields = ("name", "slug", "description")
+    readonly_fields = ("uuid",)
+    fieldsets = (
+        (None, {"fields": ("name", "slug", "description", "sort_order", "uuid")}),
+        (
+            _("Price list and catalog"),
+            {
+                "fields": (
+                    "access_price_list",
+                    "access_catalog",
+                    "catalog_change",
+                    "catalog_soft_delete",
+                    "catalog_trash",
+                    "catalog_purge",
+                ),
+            },
+        ),
+        (
+            _("Sales workflow"),
+            {"fields": ("access_proposals", "access_invoicing", "access_orders")},
+        ),
+        (_("Contacts"), {"fields": ("access_contacts", "contacts_write")}),
+    )
+
+
+@admin.register(UserFrontendProfile)
+class UserFrontendProfileAdmin(admin.ModelAdmin):
+    list_display = ("user", "role")
+    list_filter = ("role",)
+    search_fields = ("user__username", "user__email")
+    autocomplete_fields = ("user", "role")
+    readonly_fields = ("uuid",)
 
 
 @admin.register(Invoice)

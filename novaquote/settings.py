@@ -83,6 +83,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "pricelist.middleware.FrontendAccessMiddleware",
     "pricelist.middleware.LoginRequiredMiddleware",
     "pricelist.middleware.LanguageFromSettingsMiddleware",
 ]
@@ -102,6 +103,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "pricelist.context_processors.nav_categories",
                 "pricelist.context_processors.general_settings",
+                "pricelist.context_processors.frontend_capabilities",
             ],
         },
     },

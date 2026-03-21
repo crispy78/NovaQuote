@@ -1,0 +1,55 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block extrahead %}{{ block.super }}
+<style>
+  #price-margin-fieldset { overflow-x: auto !important; overflow-y: visible !important; display: block !important; }
+  #price-margin-fieldset .price-margin-columns { display: flex !important; flex-wrap: nowrap !important; min-width: 0 !important; }
+  #price-margin-fieldset .price-margin-left { min-width: 400px !important; }
+  #price-margin-fieldset .price-margin-left .form-row .flex-container { flex-wrap: nowrap !important; }
+  #price-margin-fieldset .price-margin-left select#id_offer_type { width: 100% !important; max-width: none !important; min-width: 0 !important; box-sizing: border-box !important; }
+  #price-margin-fieldset .price-margin-right { flex: 1 1 auto !important; min-width: 400px !important; overflow-x: auto !important; padding-right: 24px !important; box-sizing: border-box !important; }
+  #live-margin-info { width: 100% !important; box-sizing: border-box !important; overflow-x: auto !important; }
+  #live-margin-info table { width: 100% !important; min-width: 520px !important; max-width: 620px !important; table-layout: fixed !important; border-collapse: collapse !important; }
+  #live-margin-info th:first-child, #live-margin-info td:first-child { text-align: left !important; width: 38% !important; min-width: 10rem !important; }
+  #live-margin-info th:nth-child(2), #live-margin-info td:nth-child(2) { width: 18% !important; }
+  #live-margin-info th:nth-child(3), #live-margin-info td:nth-child(3) { width: 18% !important; }
+  #live-margin-info th:nth-child(4), #live-margin-info td:nth-child(4) { width: 18% !important; }
+  #live-margin-info th:nth-child(5), #live-margin-info td:nth-child(5) { min-width: 5rem !important; width: 8% !important; }
+  #live-margin-info th:nth-child(n+2), #live-margin-info td:nth-child(n+2) { text-align: right !important; }
+  #live-margin-info th, #live-margin-info td { padding: 4px 8px 4px 0 !important; vertical-align: top !important; }
+  #live-margin-info td:first-child { word-break: break-word !important; white-space: normal !important; }
+  #live-margin-info th:nth-child(n+2), #live-margin-info td:nth-child(n+2) { white-space: nowrap !important; }
+  /* Combination items inline: keep Delete column visible; allow scroll in Selected options if many */
+  .inline-related.tabular .field-selected_options { max-width: 320px; overflow-x: auto; }
+  .inline-related.tabular .field-selected_options ul { list-style: none; margin: 0; padding: 0; }
+  .inline-related.tabular .field-selected_options input[type="checkbox"] { margin-right: 6px; }
+  .inline-related.tabular td.delete { white-space: nowrap; min-width: 3rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if product_ids_with_options is not None %}
+{{ product_ids_with_options|json_script:"product-ids-with-options" }}
+{% endif %}
+{% if product_options_map is not None %}
+{{ product_options_map|json_script:"product-options-map" }}
+{% endif %}
+{% if product_prices is not None %}
+{{ product_prices|json_script:"product-prices" }}
+{% endif %}
+{% if combination_margin_labels is not None %}
+{{ combination_margin_labels|json_script:"combination-margin-labels" }}
+{% endif %}
+{{ block.super }}
+{% endblock %}
+
+{% block field_sets %}
+{% for fieldset in adminform %}
+  {% if "price-margin-two-columns" in fieldset.classes %}
+    {% include "admin/pricelist/combination/fieldset_price_margin.html" with heading_level=2 prefix="fieldset" id_prefix=0 id_suffix=forloop.counter0 %}
+  {% else %}
+    {% include "admin/includes/fieldset.html" with heading_level=2 prefix="fieldset" id_prefix=0 id_suffix=forloop.counter0 %}
+  {% endif %}
+{% endfor %}
+{% endblock %}

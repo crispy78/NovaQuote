@@ -1,0 +1,670 @@
+{% extends "pricelist/base.html" %}
+{% load i18n %}
+{% load pricelist_filters %}
+
+{% block title %}{% trans "Proposal" %} – {{ general_settings.site_name|default:"NovaQuote" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+        <div class="flex flex-wrap items-start justify-between gap-4 mb-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-[var(--brand)]">
+                    {% trans "Proposal" %}
+                </h1>
+                <p class="mt-1 text-slate-600">
+                    {% trans "Adjust quantities; the total updates in real time." %}
+                </p>
+            </div>
+            <a href="{% url 'pricelist:proposal_list' %}" class="text-sm font-medium text-slate-600 hover:text-[var(--brand)] shrink-0">{% trans "Saved calculations" %}</a>
+        </div>
+
+        <form id="proposal-save-form" method="post" action="{% url 'pricelist:proposal_save' %}" class="flex flex-col gap-3 w-full">
+            {% csrf_token %}
+            <input type="hidden" name="proposal_uuid" value="{{ saved_proposal.uuid|default:'' }}">
+            {{ proposal_contact_picker|json_script:"proposal-contact-picker-data" }}
+            <div
+                id="proposal-crm-initial"
+                class="hidden"
+                data-org-uuid="{% if saved_proposal.client_crm_organization_id %}{{ saved_proposal.client_crm_organization.uuid }}{% endif %}"
+                data-dept-uuid="{% if saved_proposal.client_crm_department_id %}{{ saved_proposal.client_crm_department.uuid }}{% endif %}"
+                data-contact-uuid="{% if saved_proposal.client_crm_contact_id %}{{ saved_proposal.client_crm_contact.uuid }}{% endif %}"
+            ></div>
+            <div class="rounded-lg border border-slate-200 bg-slate-50/80 p-3 space-y-2 w-full">
+                <p class="text-xs font-semibold text-slate-700">{% trans "Client / lead (Contacts)" %}</p>
+                <p class="text-xs text-slate-500">{% trans "Optional: link this calculation to a company, department, and contact from your CRM." %}</p>
+                <div class="grid gap-2 sm:grid-cols-3">
+                    <div>
+                        <label for="proposal-client-org" class="block text-xs font-medium text-slate-600 mb-1">{% trans "Company" %}</label>
+                        <select name="client_crm_organization" id="proposal-client-org" class="w-full text-sm rounded-md border border-slate-300 px-2 py-1.5 focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)]">
+                            <option value="">{% trans "— Select —" %}</option>
+                            {% for o in proposal_contact_picker %}
+                            <option value="{{ o.uuid }}" {% if saved_proposal and saved_proposal.client_crm_organization_id and saved_proposal.client_crm_organization.uuid|stringformat:"s" == o.uuid %}selected{% endif %}>{{ o.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="proposal-client-dept" class="block text-xs font-medium text-slate-600 mb-1">{% trans "Department" %}</label>
+                        <select name="client_crm_department" id="proposal-client-dept" class="w-full text-sm rounded-md border border-slate-300 px-2 py-1.5 focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)]">
+                            <option value="">{% trans "— Select —" %}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="proposal-client-contact" class="block text-xs font-medium text-slate-600 mb-1">{% trans "Contact person" %}</label>
+                        <select name="client_crm_contact" id="proposal-client-contact" class="w-full text-sm rounded-md border border-slate-300 px-2 py-1.5 focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)]">
+                            <option value="">{% trans "— Select —" %}</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-slate-50/80 p-3 space-y-2 w-full">
+                <p class="text-xs font-semibold text-slate-700">{% trans "Reference" %}</p>
+                <p class="text-xs text-slate-500">{% trans "Name or code for this calculation (shown in saved calculations and orders)." %}</p>
+                <div class="flex flex-wrap items-center gap-3">
+                    <label for="proposal-reference" class="sr-only">{% trans "Reference" %}</label>
+                    <input type="text" id="proposal-reference" name="reference" value="{{ saved_proposal.reference|default:'' }}" placeholder="{% trans 'e.g. offerte 2024-001' %}" maxlength="255" class="flex-1 min-w-[12rem] rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)]">
+                    <button type="submit" class="rounded-md bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:ring-offset-2 shrink-0">{% trans "Save calculation" %}</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {{ product_supplier_offers|json_script:"product-supplier-offers-data" }}
+    {% if proposal_show_supplier_column %}
+    <div class="mb-3 flex flex-wrap gap-2 items-center">
+        <span class="text-xs font-semibold text-slate-600">{% trans "Supplier strategy (all product lines)" %}:</span>
+        <button type="button" class="proposal-bulk-supplier rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50" data-strategy="preferred">{% trans "Preferred" %}</button>
+        <button type="button" class="proposal-bulk-supplier rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50" data-strategy="cheapest">{% trans "Cheapest price" %}</button>
+        <button type="button" class="proposal-bulk-supplier rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50" data-strategy="fastest">{% trans "Fastest delivery" %}</button>
+        <button type="button" class="proposal-bulk-supplier rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50" data-strategy="best_payment">{% trans "Best payment terms" %}</button>
+    </div>
+    {% endif %}
+
+    <div id="proposal-cart" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
+         data-currency="{{ settings.currency|default:'EUR' }}"
+         data-decimal-sep="{{ proposal_decimal_sep|default:',' }}"
+         data-thousands-sep="{{ proposal_thousands_sep|default:'.' }}">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th scope="col" class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Product / Package" %}</th>
+                        {% if proposal_show_supplier_column %}
+                        <th scope="col" class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide w-44">{% trans "Supplier" %}</th>
+                        {% endif %}
+                        <th scope="col" class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right w-28">{% trans "Unit price" %}</th>
+                        <th scope="col" class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right w-32">{% trans "Quantity" %}</th>
+                        <th scope="col" class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right w-36">{% trans "Total" %}</th>
+                    </tr>
+                </thead>
+                <tbody id="proposal-tbody">
+                    {% for line in proposal_simple_lines %}
+                    <tr class="proposal-row border-b border-slate-100 hover:bg-slate-50/50" data-unit-price="{{ line.unit_price|price_for_js:settings }}" data-type="{{ line.type }}" data-entity-uuid="{{ line.entity_uuid }}" {% if line.type == "product" %}data-product-entity-uuid="{{ line.entity_uuid }}"{% endif %}>
+                        <td class="px-4 py-3">
+                            <span class="font-medium text-slate-900">{{ line.name }}</span>
+                            {% if line.type == "combination" %}<span class="ml-2 text-xs text-emerald-600">{% trans "Package" %}</span>{% endif %}
+                            {# Package contents: each item has .label (product) and .options (selected option labels) #}
+                            {% if line.combination_items %}
+                            <ul class="mt-1.5 text-sm text-slate-600 list-disc list-inside space-y-0.5">
+                                {% for item in line.combination_items %}
+                                <li>{{ item.label }}{% if item.options %} ({% for opt in item.options %}{{ opt }}{% if not forloop.last %}, {% endif %}{% endfor %}){% endif %}</li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+                        </td>
+                        {% if proposal_show_supplier_column %}
+                        <td class="px-4 py-3 align-top">
+                            {% if line.type == "product" and line.multi_supplier %}
+                            <select class="proposal-supplier-select w-full max-w-[11rem] text-xs rounded-md border border-slate-300 px-1 py-1 focus:ring-2 focus:ring-[var(--brand)]" aria-label="{% trans 'Supplier' %}">
+                                {% for o in line.supplier_offers %}
+                                <option value="{{ o.uuid }}" data-unit-price="{% if o.unit_price is not None %}{{ o.unit_price|price_for_js:settings }}{% else %}0{% endif %}" {% if line.initial_product_supplier_uuid == o.uuid %}selected{% endif %}>{{ o.supplier_name }}</option>
+                                {% endfor %}
+                            </select>
+                            {% elif line.type == "product" and line.supplier_offers %}
+                            <span class="text-xs text-slate-600">{{ line.supplier_offers.0.supplier_name }}</span>
+                            {% else %}
+                            <span class="text-xs text-slate-400">—</span>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                        <td class="px-4 py-3 text-right text-slate-700"><span class="proposal-unit-price">{{ line.unit_price|format_price:settings }}</span></td>
+                        <td class="px-4 py-3 text-right">
+                            <input type="number" min="0" step="1" value="{{ line.initial_quantity|default:0 }}" class="proposal-qty w-20 text-right rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)]" aria-label="{% trans 'Quantity' %} {{ line.name }}">
+                        </td>
+                        <td class="px-4 py-3 text-right font-semibold text-[var(--brand)] proposal-line-total" data-line-total="0">—</td>
+                    </tr>
+                    {% endfor %}
+                    {% for product in proposal_configurable_products %}
+                    {% for row in product.initial_rows %}
+                    <tr class="proposal-row proposal-configurable border-b border-slate-100 hover:bg-slate-50/50" data-type="product" data-entity-uuid="{{ product.product_entity_uuid }}" data-product-entity-uuid="{{ product.product_entity_uuid }}" data-unit-price="{{ row.base_unit_price|price_for_js:settings }}" data-name="{{ product.name }}">
+                        <td class="px-4 py-3">
+                            <div class="flex items-start justify-between gap-2">
+                                <span class="font-medium text-slate-900">{{ product.name }}</span>
+                                <div class="flex flex-col items-end gap-1">
+                                    <ul class="mt-0 flex flex-col items-end gap-1 text-sm text-slate-600 proposal-options-list" role="group" aria-label="{% trans 'Options' %}">
+                                        {% for opt in product.options %}
+                                        <li class="w-full text-right">
+                                            <label class="inline-flex items-center justify-end gap-2 cursor-pointer w-full">
+                                                <span class="truncate">{{ opt.label }}</span>
+                                                {% with an_str=opt.article_number|stringformat:"s" %}
+                                                <input type="checkbox" class="proposal-option-cb" value="{{ an_str }}" data-price="{{ opt.unit_price }}" {% if an_str in row.option_article_numbers %}checked{% endif %}>
+                                                {% endwith %}
+                                            </label>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                    <button type="button" class="remove-configurable-row text-xs text-slate-400 hover:text-red-600 focus:outline-none self-end" title="{% trans 'Remove' %}">✕</button>
+                                </div>
+                            </div>
+                        </td>
+                        {% if proposal_show_supplier_column %}
+                        <td class="px-4 py-3 align-top">
+                            {% if product.multi_supplier %}
+                            <select class="proposal-supplier-select w-full max-w-[11rem] text-xs rounded-md border border-slate-300 px-1 py-1 focus:ring-2 focus:ring-[var(--brand)]" aria-label="{% trans 'Supplier' %}">
+                                {% for o in product.supplier_offers %}
+                                <option value="{{ o.uuid }}" data-unit-price="{% if o.unit_price is not None %}{{ o.unit_price|price_for_js:settings }}{% else %}0{% endif %}" {% if row.resolved_product_supplier_uuid == o.uuid %}selected{% endif %}>{{ o.supplier_name }}</option>
+                                {% endfor %}
+                            </select>
+                            {% elif product.supplier_offers %}
+                            <span class="text-xs text-slate-600">{{ product.supplier_offers.0.supplier_name }}</span>
+                            {% else %}
+                            <span class="text-xs text-slate-400">—</span>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                        <td class="px-4 py-3 text-right text-slate-700"><span class="proposal-unit-price">{{ row.base_unit_price|format_price:settings }}</span></td>
+                        <td class="px-4 py-3 text-right">
+                            <input type="number" min="0" step="1" value="0" class="proposal-qty w-20 text-right rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)]" aria-label="{% trans 'Quantity' %} {{ product.name }}">
+                        </td>
+                        <td class="px-4 py-3 text-right font-semibold text-[var(--brand)] proposal-line-total proposal-configurable-total" data-line-total="0">—</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="proposal-add-row border-b border-slate-100 bg-slate-50/50" data-product-entity-uuid="{{ product.product_entity_uuid }}">
+                        <td colspan="{% if proposal_show_supplier_column %}5{% else %}4{% endif %}" class="px-4 py-2">
+                            <button type="button" class="add-another-btn text-sm font-medium text-[var(--brand)] hover:text-brand-hover focus:outline-none focus:ring-2 focus:ring-[var(--brand)] rounded" data-product-entity-uuid="{{ product.product_entity_uuid }}" data-name="{{ product.name }}" data-unit-price="{{ product.unit_price|price_for_js:settings }}" data-options="{{ product.options|length }}">+ {% trans "Add another" %} {{ product.name }}</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not proposal_simple_lines and not proposal_configurable_products %}
+                    <tr>
+                        <td colspan="{% if proposal_show_supplier_column %}5{% else %}4{% endif %}" class="px-4 py-8 text-center text-slate-500">{% trans "No products or combinations available. Add items in the admin to show them here." %}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        <div class="border-t border-slate-200 bg-slate-50 px-4 py-4 flex justify-end items-center gap-4">
+            <span class="text-sm font-medium text-slate-600">{% trans "Grand total" %}</span>
+            <span id="proposal-grand-total" class="text-xl font-bold text-[var(--brand)]">—</span>
+        </div>
+    </div>
+
+    {% if active_contract_durations %}
+    <div class="mt-10">
+        <h2 class="text-lg font-semibold text-slate-800 mb-4">{% trans "Maintenance contract options" %}</h2>
+        <p class="text-sm text-slate-600 mb-4">{% trans "Based on the hardware in your proposal. Amounts update when you change quantities." %}</p>
+        <div id="proposal-contract-options" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+             data-currency="{{ settings.currency|default:'EUR' }}"
+             data-decimal-sep="{{ proposal_decimal_sep|default:',' }}"
+             data-thousands-sep="{{ proposal_thousands_sep|default:'.' }}">
+            {% for d in active_contract_durations %}
+            <div class="contract-option-card bg-white rounded-xl border border-slate-200 p-5 shadow-sm"
+                 data-duration-months="{{ d.duration_months }}"
+                 data-hardware-fee-pct="{{ d.hardware_fee_percentage }}"
+                 data-visits-per-contract="{{ d.visits_per_contract }}"
+                 data-name="{{ d.name|escape }}">
+                <h3 class="font-semibold text-slate-900">{{ d.name }}</h3>
+                <dl class="mt-3 space-y-1 text-sm">
+                    <div class="flex justify-between gap-2">
+                        <dt class="text-slate-500">{% trans "Total contract" %}</dt>
+                        <dd class="contract-option-total font-semibold text-[var(--brand)]">—</dd>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <dt class="text-slate-500">{% trans "Per month" %}</dt>
+                        <dd class="contract-option-monthly font-semibold text-slate-800">—</dd>
+                    </div>
+                </dl>
+                {% if show_contract_fee_calculation %}
+                <div class="contract-calculation-breakdown mt-4 pt-4 border-t border-slate-200 space-y-3">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">{% trans "How we calculate this" %}</p>
+
+                    <div class="breakdown-block rounded-lg bg-slate-50 p-3">
+                        <p class="text-xs font-medium text-slate-600 mb-1.5">{% trans "Contract period" %}</p>
+                        <p class="text-sm"><span class="breakdown-duration-months font-semibold text-slate-800 tabular-nums">—</span> {% trans "months" %} · <span class="breakdown-years font-semibold text-slate-800 tabular-nums">—</span> {% trans "years" %}</p>
+                    </div>
+
+                    <div class="breakdown-block rounded-lg bg-slate-50 p-3">
+                        <p class="text-xs font-medium text-slate-600 mb-1">{% trans "Hardware fee" %}</p>
+                        <p class="text-sm font-semibold text-[var(--brand)] breakdown-hardware-fee tabular-nums">—</p>
+                        <p class="text-xs text-slate-500 mt-0.5 breakdown-formula-hardware">—</p>
+                    </div>
+
+                    <div class="breakdown-block rounded-lg bg-slate-50 p-3">
+                        <p class="text-xs font-medium text-slate-600 mb-1">{% trans "Visit time" %}</p>
+                        <p class="text-sm font-semibold text-slate-800 breakdown-actual-time-result tabular-nums">—</p>
+                        <p class="text-xs text-slate-500 mt-0.5 breakdown-formula-actual-time">—</p>
+                    </div>
+
+                    <div class="breakdown-block rounded-lg bg-slate-50 p-3">
+                        <p class="text-xs font-medium text-slate-600 mb-1">{% trans "Labour costs" %}</p>
+                        <p class="text-sm font-semibold text-[var(--brand)] breakdown-cost-per-visit tabular-nums">—</p>
+                        <p class="text-xs text-slate-500 mt-0.5 breakdown-formula-cost-per-visit">—</p>
+                        <p class="text-sm font-semibold text-[var(--brand)] mt-2 breakdown-total-labour tabular-nums">—</p>
+                        <p class="text-xs text-slate-500 mt-0.5 breakdown-formula-total-labour">—</p>
+                    </div>
+
+                    <div class="breakdown-block rounded-lg bg-[var(--brand)]/5 border border-[var(--brand)]/20 p-3">
+                        <p class="text-xs font-medium text-slate-600 mb-1">{% trans "Total" %}</p>
+                        <p class="text-sm"><span class="text-slate-600">{% trans "Total contract" %}:</span> <span class="breakdown-formula-total-contract font-semibold text-[var(--brand)] tabular-nums">—</span></p>
+                        <p class="text-sm mt-1"><span class="text-slate-600">{% trans "Per month" %}:</span> <span class="breakdown-formula-monthly font-semibold text-[var(--brand)] tabular-nums">—</span></p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{{ active_contract_durations|json_script:"contract-durations-data" }}
+{{ maintenance_settings|json_script:"maintenance-settings-data" }}
+{{ proposal_calc_i18n|json_script:"proposal-calc-i18n" }}
+
+<script>
+(function() {
+    var dataEl = document.getElementById('proposal-contact-picker-data');
+    var orgSel = document.getElementById('proposal-client-org');
+    var deptSel = document.getElementById('proposal-client-dept');
+    var contactSel = document.getElementById('proposal-client-contact');
+    var initialEl = document.getElementById('proposal-crm-initial');
+    if (!dataEl || !orgSel || !deptSel || !contactSel) return;
+    var PICKER = [];
+    try { PICKER = JSON.parse(dataEl.textContent); } catch (e) { return; }
+    function orgByUuid(u) {
+        for (var i = 0; i < PICKER.length; i++) {
+            if (PICKER[i].uuid === u) return PICKER[i];
+        }
+        return null;
+    }
+    function refillDepartments(orgUuid, preselectDept) {
+        deptSel.innerHTML = '';
+        var o0 = document.createElement('option');
+        o0.value = '';
+        o0.textContent = '\u2014';
+        deptSel.appendChild(o0);
+        contactSel.innerHTML = '';
+        var c0 = document.createElement('option');
+        c0.value = '';
+        c0.textContent = '\u2014';
+        contactSel.appendChild(c0);
+        if (!orgUuid) return;
+        var org = orgByUuid(orgUuid);
+        if (!org || !org.departments) return;
+        org.departments.forEach(function(d) {
+            var o = document.createElement('option');
+            o.value = d.uuid;
+            o.textContent = d.name;
+            if (preselectDept && preselectDept === d.uuid) o.selected = true;
+            deptSel.appendChild(o);
+        });
+    }
+    function refillContacts(orgUuid, deptUuid, preselectContact) {
+        while (contactSel.options.length > 1) contactSel.remove(1);
+        if (!orgUuid) return;
+        var org = orgByUuid(orgUuid);
+        if (!org || !org.memberships) return;
+        org.memberships.forEach(function(m) {
+            if (deptUuid) {
+                if (m.department_uuid && m.department_uuid !== deptUuid) return;
+            }
+            var o = document.createElement('option');
+            o.value = m.uuid;
+            o.textContent = m.label;
+            if (preselectContact && preselectContact === m.uuid) o.selected = true;
+            contactSel.appendChild(o);
+        });
+    }
+    orgSel.addEventListener('change', function() {
+        refillDepartments(orgSel.value, '');
+        refillContacts(orgSel.value, '', '');
+    });
+    deptSel.addEventListener('change', function() {
+        refillContacts(orgSel.value, deptSel.value, '');
+    });
+    var iOrg = initialEl ? (initialEl.getAttribute('data-org-uuid') || '') : '';
+    var iDept = initialEl ? (initialEl.getAttribute('data-dept-uuid') || '') : '';
+    var iContact = initialEl ? (initialEl.getAttribute('data-contact-uuid') || '') : '';
+    if (orgSel.value || iOrg) {
+        var ou = orgSel.value || iOrg;
+        if (ou && !orgSel.value) orgSel.value = ou;
+        refillDepartments(ou, iDept);
+        refillContacts(ou, deptSel.value, iContact);
+    }
+})();
+</script>
+
+<script>
+(function() {
+    var cart = document.getElementById('proposal-cart');
+    if (!cart) return;
+    var currency = cart.getAttribute('data-currency') || 'EUR';
+    var decimalSep = cart.getAttribute('data-decimal-sep') || ',';
+    var thousandsSep = cart.getAttribute('data-thousands-sep') || '.';
+
+    var contractDurationsEl = document.getElementById('contract-durations-data');
+    var maintenanceSettingsEl = document.getElementById('maintenance-settings-data');
+    var calcI18nEl = document.getElementById('proposal-calc-i18n');
+    var calcI18n = calcI18nEl ? JSON.parse(calcI18nEl.textContent) : {};
+    var contractDurations = contractDurationsEl ? JSON.parse(contractDurationsEl.textContent) : [];
+    var maintenanceSettings = maintenanceSettingsEl ? JSON.parse(maintenanceSettingsEl.textContent) : {};
+    var timePerProduct = Number(maintenanceSettings.time_per_product_minutes) || 15;
+    var minimumVisit = Number(maintenanceSettings.minimum_visit_minutes) || 60;
+    var hourlyRate = Number(maintenanceSettings.hourly_rate) || 75;
+
+    var offersDataEl = document.getElementById('product-supplier-offers-data');
+    var PRODUCT_OFFERS = {};
+    if (offersDataEl) {
+        try { PRODUCT_OFFERS = JSON.parse(offersDataEl.textContent); } catch (err) { PRODUCT_OFFERS = {}; }
+    }
+
+    function pickOfferForStrategy(offers, strategy) {
+        if (!offers || !offers.length) return null;
+        if (offers.length === 1) return offers[0];
+        var s = (strategy || '').toLowerCase();
+        var i, o, best;
+        if (s === 'preferred') {
+            for (i = 0; i < offers.length; i++) {
+                if (offers[i].is_preferred) return offers[i];
+            }
+            return offers[0];
+        }
+        if (s === 'cheapest') {
+            best = null;
+            for (i = 0; i < offers.length; i++) {
+                o = offers[i];
+                var up = o.unit_price;
+                if (up == null) continue;
+                if (!best || up < best.unit_price) best = o;
+            }
+            return best || offers[0];
+        }
+        if (s === 'fastest') {
+            best = null;
+            for (i = 0; i < offers.length; i++) {
+                o = offers[i];
+                var lt = o.lead_time_days;
+                if (lt == null) continue;
+                if (!best || lt < best.lead_time_days) best = o;
+            }
+            return best || offers[0];
+        }
+        if (s === 'best_payment') {
+            best = null;
+            for (i = 0; i < offers.length; i++) {
+                o = offers[i];
+                var pd = o.payment_terms_days;
+                if (pd == null) continue;
+                if (!best || pd > best.payment_terms_days) best = o;
+            }
+            return best || offers[0];
+        }
+        return offers[0];
+    }
+
+    function applySupplierSelectToRow(row) {
+        var sel = row.querySelector('.proposal-supplier-select');
+        if (!sel || !sel.options.length) return;
+        var opt = sel.options[sel.selectedIndex];
+        if (!opt) return;
+        var up = parseFloat(opt.getAttribute('data-unit-price'));
+        if (isNaN(up)) up = 0;
+        row.setAttribute('data-unit-price', String(up));
+    }
+
+    document.querySelectorAll('.proposal-bulk-supplier').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var strat = btn.getAttribute('data-strategy');
+            cart.querySelectorAll('.proposal-row').forEach(function(row) {
+                var pid = row.getAttribute('data-product-entity-uuid');
+                if (!pid) return;
+                var offers = PRODUCT_OFFERS[String(pid)];
+                if (!offers || offers.length < 2) return;
+                var pick = pickOfferForStrategy(offers, strat);
+                if (!pick) return;
+                var sel = row.querySelector('.proposal-supplier-select');
+                if (!sel) return;
+                sel.value = String(pick.uuid);
+                applySupplierSelectToRow(row);
+            });
+            updateTotals();
+        });
+    });
+
+    function formatMoney(num) {
+        var n = Number(num);
+        if (isNaN(n) || n < 0) n = 0;
+        var fixed = n.toFixed(2);
+        var parts = fixed.split('.');
+        if (thousandsSep && parts[0].length > 3) {
+            var intPart = parts[0];
+            var out = '';
+            for (var i = 0; i < intPart.length; i++) {
+                if (i > 0 && (intPart.length - i) % 3 === 0) out += thousandsSep;
+                out += intPart[i];
+            }
+            parts[0] = out;
+        }
+        return currency + ' ' + parts.join(decimalSep);
+    }
+
+    function getProposalTotals() {
+        var rows = cart.querySelectorAll('.proposal-row');
+        var totalValue = 0;
+        var totalProducts = 0;
+        rows.forEach(function(row) {
+            var input = row.querySelector('.proposal-qty');
+            var qty = input ? (parseInt(input.value, 10) || 0) : 0;
+            var cell = row.querySelector('.proposal-line-total');
+            var lineTotal = cell ? parseFloat(cell.getAttribute('data-line-total')) || 0 : 0;
+            totalValue += lineTotal;
+            totalProducts += qty;
+        });
+        return { totalValue: totalValue, totalProducts: totalProducts };
+    }
+
+    function updateContractOptions(totals) {
+        var container = document.getElementById('proposal-contract-options');
+        function clearBreakdown(card) {
+            var breakdown = card.querySelector('.contract-calculation-breakdown');
+            if (!breakdown) return;
+            var sel = ['breakdown-duration-months', 'breakdown-years', 'breakdown-hardware-fee', 'breakdown-formula-hardware', 'breakdown-actual-time-result', 'breakdown-formula-actual-time', 'breakdown-cost-per-visit', 'breakdown-formula-cost-per-visit', 'breakdown-total-labour', 'breakdown-formula-total-labour', 'breakdown-formula-total-contract', 'breakdown-formula-monthly'];
+            sel.forEach(function(cls) {
+                var el = breakdown.querySelector('.' + cls);
+                if (el) el.textContent = '—';
+            });
+        }
+        if (!container || !totals || totals.totalProducts <= 0) {
+            var cards = document.querySelectorAll('.contract-option-card');
+            cards.forEach(function(card) {
+                var totalEl = card.querySelector('.contract-option-total');
+                var monthlyEl = card.querySelector('.contract-option-monthly');
+                if (totalEl) totalEl.textContent = '—';
+                if (monthlyEl) monthlyEl.textContent = '—';
+                clearBreakdown(card);
+            });
+            return;
+        }
+        var totalValue = totals.totalValue;
+        var totalProducts = totals.totalProducts;
+        var cards = container.querySelectorAll('.contract-option-card');
+        cards.forEach(function(card) {
+            var durationMonths = parseInt(card.getAttribute('data-duration-months'), 10) || 0;
+            var feePct = parseFloat(card.getAttribute('data-hardware-fee-pct')) || 0;
+            var visitsPerContract = parseFloat(card.getAttribute('data-visits-per-contract')) || 6;
+            if (durationMonths <= 0) return;
+            var hardwareFee = totalValue * (feePct / 100);
+            var calculatedTime = totalProducts * timePerProduct;
+            var actualTime = calculatedTime < minimumVisit ? minimumVisit : calculatedTime;
+            var costPerVisit = (actualTime / 60) * hourlyRate;
+            var years = durationMonths / 12;
+            var totalLabour = costPerVisit * visitsPerContract;
+            var totalContract = hardwareFee + totalLabour;
+            var monthly = totalContract / durationMonths;
+            var totalEl = card.querySelector('.contract-option-total');
+            var monthlyEl = card.querySelector('.contract-option-monthly');
+            if (totalEl) totalEl.textContent = formatMoney(totalContract);
+            if (monthlyEl) monthlyEl.textContent = formatMoney(monthly);
+            var breakdown = card.querySelector('.contract-calculation-breakdown');
+            if (breakdown) {
+                var fmt = formatMoney;
+                var dm = breakdown.querySelector('.breakdown-duration-months');
+                var dy = breakdown.querySelector('.breakdown-years');
+                if (dm) dm.textContent = durationMonths;
+                if (dy) dy.textContent = years.toFixed(1);
+                var hf = breakdown.querySelector('.breakdown-hardware-fee');
+                if (hf) hf.textContent = fmt(hardwareFee);
+                var t = function(key) { return calcI18n[key] || key; };
+                var fH = breakdown.querySelector('.breakdown-formula-hardware');
+                if (fH) fH.textContent = feePct + '% ' + t('of_purchase_value') + ' (' + fmt(totalValue) + ')';
+                var atResult = breakdown.querySelector('.breakdown-actual-time-result');
+                if (atResult) atResult.textContent = actualTime.toFixed(1) + ' min ' + t('per_visit');
+                var fAt = breakdown.querySelector('.breakdown-formula-actual-time');
+                if (fAt) {
+                    var prodLabel = totalProducts + ' ' + t('product_s') + ' × ' + timePerProduct + ' min = ' + calculatedTime.toFixed(1) + ' min. ';
+                    if (actualTime <= calculatedTime) {
+                        fAt.textContent = prodLabel + (t('above_minimum').replace(/\{min\}/g, minimumVisit));
+                    } else {
+                        fAt.textContent = prodLabel + (t('below_minimum').replace(/\{min\}/g, minimumVisit));
+                    }
+                }
+                var cpv = breakdown.querySelector('.breakdown-cost-per-visit');
+                if (cpv) cpv.textContent = fmt(costPerVisit) + ' ' + t('per_visit');
+                var fCpv = breakdown.querySelector('.breakdown-formula-cost-per-visit');
+                if (fCpv) fCpv.textContent = actualTime.toFixed(1) + ' min ÷ 60 × ' + fmt(hourlyRate) + ' ' + t('hourly_rate');
+                var tl = breakdown.querySelector('.breakdown-total-labour');
+                if (tl) tl.textContent = fmt(totalLabour);
+                var fTl = breakdown.querySelector('.breakdown-formula-total-labour');
+                if (fTl) fTl.textContent = fmt(costPerVisit) + ' × ' + visitsPerContract + ' ' + t('visits_in_contract_period');
+                var fTc = breakdown.querySelector('.breakdown-formula-total-contract');
+                if (fTc) fTc.textContent = fmt(totalContract);
+                var fMo = breakdown.querySelector('.breakdown-formula-monthly');
+                if (fMo) fMo.textContent = fmt(monthly);
+            }
+        });
+    }
+
+    function updateTotals() {
+        var rows = cart.querySelectorAll('.proposal-row');
+        var grand = 0;
+        rows.forEach(function(row) {
+            var baseUnitPrice = parseFloat(row.getAttribute('data-unit-price')) || 0;
+            var optionsExtra = 0;
+            row.querySelectorAll('.proposal-option-cb:checked').forEach(function(cb) {
+                var p = parseFloat(cb.getAttribute('data-price'));
+                if (!isNaN(p)) optionsExtra += p;
+            });
+            var effectiveUnitPrice = baseUnitPrice + optionsExtra;
+            var input = row.querySelector('.proposal-qty');
+            var qty = input ? (parseInt(input.value, 10) || 0) : 0;
+            var lineTotal = effectiveUnitPrice * qty;
+            grand += lineTotal;
+            var cell = row.querySelector('.proposal-line-total');
+            if (cell) {
+                cell.textContent = qty ? formatMoney(lineTotal) : '—';
+                cell.setAttribute('data-line-total', lineTotal.toFixed(2));
+            }
+            var unitCell = row.querySelector('.proposal-unit-price');
+            if (unitCell) {
+                unitCell.textContent = formatMoney(effectiveUnitPrice);
+            }
+        });
+        var grandEl = document.getElementById('proposal-grand-total');
+        if (grandEl) grandEl.textContent = grand > 0 ? formatMoney(grand) : '—';
+        var totals = getProposalTotals();
+        updateContractOptions(totals);
+    }
+
+    cart.addEventListener('input', function(e) {
+        if (e.target.classList.contains('proposal-qty')) updateTotals();
+    });
+    cart.addEventListener('change', function(e) {
+        if (e.target.classList.contains('proposal-qty') || e.target.classList.contains('proposal-option-cb')) updateTotals();
+        if (e.target.classList.contains('proposal-supplier-select')) {
+            var row = e.target.closest('.proposal-row');
+            if (row) applySupplierSelectToRow(row);
+            updateTotals();
+        }
+    });
+    cart.querySelectorAll('.proposal-row').forEach(function(row) { applySupplierSelectToRow(row); });
+    updateTotals();
+
+    document.getElementById('proposal-cart').addEventListener('click', function(e) {
+        if (e.target.classList.contains('add-another-btn') || (e.target.closest && e.target.closest('.add-another-btn'))) {
+            var btn = e.target.classList.contains('add-another-btn') ? e.target : e.target.closest('.add-another-btn');
+            if (!btn) return;
+            var addRow = btn.closest('tr.proposal-add-row');
+            if (!addRow) return;
+            var prev = addRow.previousElementSibling;
+            if (!prev || !prev.classList.contains('proposal-configurable')) return;
+            var clone = prev.cloneNode(true);
+            clone.querySelectorAll('.proposal-option-cb').forEach(function(cb) { cb.checked = false; });
+            addRow.parentNode.insertBefore(clone, addRow);
+            applySupplierSelectToRow(clone);
+            updateTotals();
+        } else if (e.target.classList.contains('remove-configurable-row') || (e.target.closest && e.target.closest('.remove-configurable-row'))) {
+            var row = (e.target.closest('.remove-configurable-row') || e.target).closest('tr.proposal-configurable');
+            if (row) { row.remove(); updateTotals(); }
+        }
+    });
+
+    var saveForm = document.getElementById('proposal-save-form');
+    if (saveForm) {
+        saveForm.addEventListener('submit', function(e) {
+            [].slice.call(saveForm.querySelectorAll('input[name^="line_"]')).forEach(function(inp) { inp.remove(); });
+            var rows = cart.querySelectorAll('.proposal-row');
+            var index = 0;
+            rows.forEach(function(row) {
+                var type = row.getAttribute('data-type');
+                var entityUuid = row.getAttribute('data-entity-uuid');
+                var unitPrice = row.getAttribute('data-unit-price') || '0';
+                var input = row.querySelector('.proposal-qty');
+                var qty = input ? (parseInt(input.value, 10) || 0) : 0;
+                var optionIds = [];
+                if (row.classList.contains('proposal-configurable')) {
+                    row.querySelectorAll('.proposal-option-cb:checked').forEach(function(cb) { optionIds.push(cb.value); });
+                }
+                if (type && entityUuid && qty > 0) {
+                    var prefix = 'line_' + index + '_';
+                    [['type', type], ['id', entityUuid], ['qty', String(qty)], ['unit_price', unitPrice]].forEach(function(pair) {
+                        var inp = document.createElement('input');
+                        inp.type = 'hidden';
+                        inp.name = prefix + pair[0];
+                        inp.value = pair[1];
+                        saveForm.appendChild(inp);
+                    });
+                    if (optionIds.length) {
+                        var optInp = document.createElement('input');
+                        optInp.type = 'hidden';
+                        optInp.name = prefix + 'options';
+                        optInp.value = optionIds.join(',');
+                        saveForm.appendChild(optInp);
+                    }
+                    if (type === 'product') {
+                        var psSel = row.querySelector('.proposal-supplier-select');
+                        if (psSel && psSel.value) {
+                            var psInp = document.createElement('input');
+                            psInp.type = 'hidden';
+                            psInp.name = prefix + 'product_supplier';
+                            psInp.value = psSel.value;
+                            saveForm.appendChild(psInp);
+                        }
+                    }
+                    index++;
+                }
+            });
+        });
+    }
+})();
+</script>
+{% endblock %}

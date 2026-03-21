@@ -1,0 +1,52 @@
+{% extends "pricelist/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} – {{ general_settings.site_name|default:"NovaQuote" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-[var(--brand)]">{{ page_title }}</h1>
+            <p class="mt-1 text-slate-600">{{ page_subtitle }}</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{% url 'pricelist:catalog_combination_create' %}" class="rounded-lg bg-[var(--brand)] px-4 py-2.5 text-sm font-medium text-white hover:opacity-90">{% trans "Add combination" %}</a>
+            {% if user.is_staff %}
+            <a href="{% url 'pricelist:catalog_combination_trash' %}" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">{% trans "Removed combinations" %}</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Name" %}</th>
+                        <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in combinations %}
+                    <tr class="border-b border-slate-100 hover:bg-slate-50/50">
+                        <td class="px-4 py-3">
+                            <a href="{% url 'pricelist:catalog_combination_edit' combo_uuid=c.uuid %}" class="font-medium text-[var(--brand)] hover:underline">{{ c.name }}</a>
+                        </td>
+                        <td class="px-4 py-3 text-right whitespace-nowrap">
+                            <a href="{% url 'pricelist:catalog_combination_edit' combo_uuid=c.uuid %}" class="text-[var(--brand)] hover:underline mr-3">{% trans "Edit" %}</a>
+                            <form method="post" action="{% url 'pricelist:catalog_combination_remove' combo_uuid=c.uuid %}" class="inline" onsubmit="return confirm('{% trans "Remove this combination from the catalog? You can restore it later (staff)." %}');">
+                                {% csrf_token %}
+                                <button type="submit" class="text-red-600 hover:underline text-sm bg-transparent border-0 cursor-pointer p-0">{% trans "Remove" %}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="2" class="px-4 py-8 text-center text-slate-500">{% trans "No combinations yet." %}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

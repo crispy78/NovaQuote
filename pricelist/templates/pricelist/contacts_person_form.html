@@ -1,0 +1,187 @@
+{% extends "pricelist/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} – {{ general_settings.site_name|default:"NovaQuote" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-[var(--brand)]">{{ page_title }}</h1>
+        {% if person %}
+        <a href="{% url 'pricelist:contacts_person_detail' person_uuid=person.uuid %}" class="text-sm font-medium text-slate-600 hover:text-brand">{% trans "Cancel" %}</a>
+        {% else %}
+        <a href="{% url 'pricelist:contacts_persons' %}" class="text-sm font-medium text-slate-600 hover:text-brand">{% trans "Cancel" %}</a>
+        {% endif %}
+    </div>
+
+    <form method="post" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-8" id="person-form">
+        {% csrf_token %}
+        {% if return_next %}<input type="hidden" name="return_next" value="{{ return_next }}">{% endif %}
+
+        {% if form.non_field_errors %}
+        <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="space-y-4">
+            <h2 class="text-base font-semibold text-slate-900 border-b border-slate-100 pb-2">{% trans "Profile" %}</h2>
+            {% for field in form %}
+            {% if field.name != "communication_preferences" %}
+            <div>
+                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ field.label }}</label>
+                {% if field.help_text %}<p class="text-xs text-slate-500 mb-1">{{ field.help_text }}</p>{% endif %}
+                {{ field.errors }}
+                {{ field }}
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        {% if hobby_formset %}
+        <div class="space-y-4 border-t border-slate-100 pt-6">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 class="text-base font-semibold text-slate-900">{% trans "Hobbies & interests" %}</h2>
+                <button type="button" id="add-hobby-row" class="text-sm font-medium text-[var(--brand)] hover:underline">+ {% trans "Add item" %}</button>
+            </div>
+            <p class="text-xs text-slate-500">{% trans "Add one line per hobby. Use Remove to delete a line." %}</p>
+            {{ hobby_formset.non_form_errors }}
+            <div id="hobby-rows" class="space-y-3">
+                {{ hobby_formset.management_form }}
+                {% for f in hobby_formset %}
+                <div class="hobby-row flex flex-wrap items-end gap-3 rounded-lg border border-slate-100 bg-slate-50/50 p-3">
+                    {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+                    <div class="flex-1 min-w-[12rem]">
+                        <label for="{{ f.name.id_for_label }}" class="block text-xs font-medium text-slate-600 mb-1">{{ f.name.label }}</label>
+                        {{ f.name.errors }}{{ f.name }}
+                    </div>
+                    {% if f.DELETE %}
+                    <div class="flex items-center gap-2 pb-1">
+                        {{ f.DELETE }}
+                        <label for="{{ f.DELETE.id_for_label }}" class="text-sm text-slate-600">{% trans "Remove" %}</label>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <template id="hobby-empty-row">
+                <div class="hobby-row flex flex-wrap items-end gap-3 rounded-lg border border-slate-100 bg-slate-50/50 p-3">
+                    {% for hidden in hobby_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+                    <div class="flex-1 min-w-[12rem]">
+                        <label class="block text-xs font-medium text-slate-600 mb-1" for="{{ hobby_formset.empty_form.name.id_for_label }}">{{ hobby_formset.empty_form.name.label }}</label>
+                        {{ hobby_formset.empty_form.name }}
+                    </div>
+                    {% if hobby_formset.empty_form.DELETE %}
+                    <div class="flex items-center gap-2 pb-1">
+                        {{ hobby_formset.empty_form.DELETE }}
+                        <label class="text-sm text-slate-600" for="{{ hobby_formset.empty_form.DELETE.id_for_label }}">{% trans "Remove" %}</label>
+                    </div>
+                    {% endif %}
+                </div>
+            </template>
+        </div>
+        {% endif %}
+
+        {% if event_formset %}
+        <div class="space-y-4 border-t border-slate-100 pt-6">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 class="text-base font-semibold text-slate-900">{% trans "Events" %}</h2>
+                <button type="button" id="add-event-row" class="text-sm font-medium text-[var(--brand)] hover:underline">+ {% trans "Add event" %}</button>
+            </div>
+            <p class="text-xs text-slate-500">{% trans "Name, date, and optional reminder. Leave a row empty to skip it." %}</p>
+            {{ event_formset.non_form_errors }}
+            <div id="event-rows" class="space-y-4">
+                {{ event_formset.management_form }}
+                {% for f in event_formset %}
+                <div class="event-row rounded-lg border border-slate-100 bg-slate-50/50 p-3 space-y-3">
+                    {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+                    <div class="grid sm:grid-cols-2 gap-3">
+                        <div>
+                            <label for="{{ f.name.id_for_label }}" class="block text-xs font-medium text-slate-600 mb-1">{{ f.name.label }}</label>
+                            {{ f.name.errors }}{{ f.name }}
+                        </div>
+                        <div>
+                            <label for="{{ f.event_date.id_for_label }}" class="block text-xs font-medium text-slate-600 mb-1">{{ f.event_date.label }}</label>
+                            {{ f.event_date.errors }}{{ f.event_date }}
+                        </div>
+                    </div>
+                    <div>
+                        <label for="{{ f.reminder.id_for_label }}" class="block text-xs font-medium text-slate-600 mb-1">{{ f.reminder.label }}</label>
+                        {{ f.reminder.errors }}{{ f.reminder }}
+                    </div>
+                    {% if f.DELETE %}
+                    <div class="flex items-center gap-2">
+                        {{ f.DELETE }}
+                        <label for="{{ f.DELETE.id_for_label }}" class="text-sm text-slate-600">{% trans "Remove" %}</label>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <template id="event-empty-row">
+                <div class="event-row rounded-lg border border-slate-100 bg-slate-50/50 p-3 space-y-3">
+                    {% for hidden in event_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+                    <div class="grid sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1" for="{{ event_formset.empty_form.name.id_for_label }}">{{ event_formset.empty_form.name.label }}</label>
+                            {{ event_formset.empty_form.name }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1" for="{{ event_formset.empty_form.event_date.id_for_label }}">{{ event_formset.empty_form.event_date.label }}</label>
+                            {{ event_formset.empty_form.event_date }}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1" for="{{ event_formset.empty_form.reminder.id_for_label }}">{{ event_formset.empty_form.reminder.label }}</label>
+                        {{ event_formset.empty_form.reminder }}
+                    </div>
+                    {% if event_formset.empty_form.DELETE %}
+                    <div class="flex items-center gap-2">
+                        {{ event_formset.empty_form.DELETE }}
+                        <label class="text-sm text-slate-600" for="{{ event_formset.empty_form.DELETE.id_for_label }}">{% trans "Remove" %}</label>
+                    </div>
+                    {% endif %}
+                </div>
+            </template>
+        </div>
+        {% endif %}
+
+        <div class="space-y-4 border-t border-slate-100 pt-6">
+            <div>
+                <label for="{{ form.communication_preferences.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.communication_preferences.label }}</label>
+                {% if form.communication_preferences.help_text %}<p class="text-xs text-slate-500 mb-1">{{ form.communication_preferences.help_text }}</p>{% endif %}
+                {{ form.communication_preferences.errors }}
+                {{ form.communication_preferences }}
+            </div>
+        </div>
+
+        <div class="flex flex-wrap gap-3 pt-4 border-t border-slate-100">
+            <button type="submit" class="rounded-lg bg-[var(--brand)] px-5 py-2.5 text-sm font-medium text-white hover:opacity-90">{% trans "Save" %}</button>
+        </div>
+    </form>
+</div>
+
+{% if hobby_formset or event_formset %}
+<script>
+(function () {
+    function wireAdd(buttonId, rowsId, totalIdPrefix, templateId) {
+        var btn = document.getElementById(buttonId);
+        var rows = document.getElementById(rowsId);
+        var tpl = document.getElementById(templateId);
+        if (!btn || !rows || !tpl) return;
+        btn.addEventListener('click', function () {
+            var totalInput = document.getElementById(totalIdPrefix + '-TOTAL_FORMS');
+            if (!totalInput) return;
+            var idx = parseInt(totalInput.value, 10) || 0;
+            var html = tpl.innerHTML.replace(/__prefix__/g, idx);
+            var wrap = document.createElement('div');
+            wrap.innerHTML = html.trim();
+            var row = wrap.firstElementChild;
+            if (row) rows.appendChild(row);
+            totalInput.value = idx + 1;
+        });
+    }
+    wireAdd('add-hobby-row', 'hobby-rows', 'id_hobbies', 'hobby-empty-row');
+    wireAdd('add-event-row', 'event-rows', 'id_events', 'event-empty-row');
+})();
+</script>
+{% endif %}
+{% endblock %}

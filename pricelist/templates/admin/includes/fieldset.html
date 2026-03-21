@@ -1,0 +1,33 @@
+<fieldset class="module aligned {{ fieldset.classes }}"{% if fieldset.name %} aria-labelledby="{{ prefix }}-{{ id_prefix}}-{{ id_suffix }}-heading"{% endif %}>
+    {% if fieldset.name %}
+        {% if fieldset.is_collapsible %}<details><summary>{% endif %}
+        <h{{ heading_level|default:2 }} id="{{ prefix }}-{{ id_prefix}}-{{ id_suffix }}-heading" class="fieldset-heading">{{ fieldset.name }}</h{{ heading_level|default:2 }}>
+        {% if fieldset.is_collapsible %}</summary>{% endif %}
+    {% endif %}
+    {% if fieldset.description %}
+        <div class="description">{{ fieldset.description|safe }}</div>
+    {% endif %}
+    {% if "price-margin-two-columns" in fieldset.classes %}
+        <div class="price-margin-columns">
+            <div class="price-margin-left">
+                {% for line in fieldset %}
+                    {% if "margin_preview_placeholder" not in line.fields %}
+                        {% include "admin/includes/fieldset_line.html" %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+            <div class="price-margin-right">
+                {% for line in fieldset %}
+                    {% if "margin_preview_placeholder" in line.fields %}
+                        {% include "admin/includes/fieldset_line.html" %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    {% else %}
+        {% for line in fieldset %}
+            {% include "admin/includes/fieldset_line.html" %}
+        {% endfor %}
+    {% endif %}
+    {% if fieldset.name and fieldset.is_collapsible %}</details>{% endif %}
+</fieldset>

@@ -1,0 +1,57 @@
+---
+description: NovaQuote - core AI coding rules
+alwaysApply: true
+---
+
+# NovaQuote - Cursor AI System Rules
+
+## Project Overview
+NovaQuote is an open-source, modular ERP/SRM system built with Django. It handles B2B customers, retail suppliers, product management, quoting, order processing, asset management, and custom-domain storefronts.
+
+## 1) Core Architectural Rules (CRITICAL)
+- **Modularity (practical):** Prefer a modular app structure, but do NOT block progress if you start with a single Django app.
+  - Use **internal module boundaries** (e.g. `services/`, `domain/`, `repositories/`, `selectors/`) so features remain maintainable.
+  - Keep dependencies shallow: prefer local imports and stable interfaces over importing models/views across modules.
+  - When cross-app coordination is needed, use Django **signals** and/or a dedicated **service layer** to avoid tight coupling.
+- **Loose Coupling:** Avoid deep cross-app imports. If coordination is needed, use Django **signals** or a dedicated **service layer** so failures in one app don't break others.
+- **UUID identifiers (stable):** Prefer adding a stable UUID field to every database model.
+  - Use it for external references (URLs, stable lookup, integrations).
+  - **Do not expose integer primary keys** in user-facing URLs, HTML forms, JSON for the UI, or admin list/search labels when a model UUID (or domain-stable id such as `Product.article_number`) exists. The UUID (or that domain id) is the source of truth for lookups from the browser and APIs; keep numeric PKs internal to the ORM only.
+  - If a full PK swap to UUID is not feasible (e.g. legacy DB/data preservation), keep the existing PK and use the UUID identifier instead. (We can migrate to UUID PK later.)
+- **Step-by-Step Execution:** The user provides instructions in chunks.
+  - Do not implement the whole system at once.
+  - Only write the code for the specific chunk requested.
+
+## 2) Language & i18n
+- **Codebase Language:** Keep **all code identifiers, comments, docstrings, and user-facing strings in English**.
+- **Translations / i18n:** Wrap every user-facing string in `gettext_lazy` (`_`).
+  - Import: `from django.utils.translation import gettext_lazy as _`
+- **Initial Languages:** English (base) and Dutch (`nl`). Always keep the code ready for `makemessages`.
+
+## 3) Database & Models
+- **History & Auditing:** For critical business entities (e.g. Product pricing and Quotes), implement change history (e.g. `django-simple-history` or custom audit logging).
+- **Fat Models, Skinny Views:** Business logic belongs in model methods or service classes, not in views.
+
+## 4) Feature Guidelines
+- **Blockly/Formulas:** When implementing formula evaluation:
+  - Never use `eval()`/`exec()` without strict AST parsing and sandboxing.
+  - Prefer a safe expression parser/whitelist approach.
+- **Custom Domains / Tenants:** Storefront and pricelist rendering for custom domains must be handled via middleware inspecting `Host`, and dynamically loading tenant CSS/data.
+
+## 5) Code Style & Best Practices
+- Follow PEP 8.
+- Prefer Python type hints where practical.
+- Prefer Django patterns:
+  - Use Class-Based Views unless a Function-Based View is clearly simpler.
+
+## 6) AI Interaction Rules
+- When asked to implement a feature:
+  1. First briefly outline the proposed models + architecture.
+  2. Ask for approval if there are meaningful trade-offs or coupling concerns.
+  3. Then implement only the requested chunk.
+- **Do not remove existing code** unless the user explicitly requests it.
+
+## 7) README Requirement
+- Update `README.md` as the project progresses:
+  - How to run the application
+  - What functionalities exist / were added

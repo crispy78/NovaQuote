@@ -1,0 +1,24 @@
+{% extends "pricelist/base.html" %}
+{% load i18n pricelist_filters %}
+
+{% block title %}{% trans "Create invoice" %} – {{ general_settings.site_name|default:"NovaQuote" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-2xl font-bold text-[var(--brand)]">{% trans "Create draft invoice" %}</h1>
+    <p class="mt-2 text-slate-600">
+        {% trans "This freezes the current line totals from the saved calculation. After creating the invoice, open it and mark it as sent when you issue it to the customer. Only then can you create a purchase order from the same calculation." %}
+    </p>
+    <div class="mt-6 bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+        <p class="text-sm text-slate-500">{% trans "Calculation" %}</p>
+        <p class="font-medium text-slate-900">{{ proposal.reference|default:proposal.uuid }}</p>
+        <p class="mt-4 text-sm text-slate-500">{% trans "Grand total (will be stored on the invoice)" %}</p>
+        <p class="text-lg font-semibold text-[var(--brand)]">{{ grand_total|format_price:settings }}</p>
+    </div>
+    <form method="post" class="mt-8 flex flex-wrap gap-3">
+        {% csrf_token %}
+        <button type="submit" class="rounded-lg bg-[var(--brand)] px-4 py-2.5 text-sm font-medium text-white hover:opacity-90">{% trans "Create draft invoice" %}</button>
+        <a href="{% url 'pricelist:proposal_detail' identifier=proposal.uuid %}" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 inline-flex items-center">{% trans "Cancel" %}</a>
+    </form>
+</div>
+{% endblock %}

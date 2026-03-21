@@ -1,0 +1,24 @@
+<fieldset id="price-margin-fieldset" class="module aligned {{ fieldset.classes }}"{% if fieldset.name %} aria-labelledby="{{ prefix }}-{{ id_prefix}}-{{ id_suffix }}-heading"{% endif %}>
+    {% if fieldset.name %}
+        <h{{ heading_level|default:2 }} id="{{ prefix }}-{{ id_prefix}}-{{ id_suffix }}-heading" class="fieldset-heading">{{ fieldset.name }}</h{{ heading_level|default:2 }}>
+    {% endif %}
+    {% if fieldset.description %}
+        <div class="description">{{ fieldset.description|safe }}</div>
+    {% endif %}
+    <div class="price-margin-columns" style="display:flex; flex-wrap:nowrap; gap:2rem; align-items:flex-start; margin-top:1rem;">
+        <div class="price-margin-left" style="flex:0 0 auto; width:400px;">
+            {% for line in fieldset %}
+                {% if "margin_preview_placeholder" not in line.fields %}
+                    {% include "admin/pricelist/combination/fieldset_line.html" %}
+                {% endif %}
+            {% endfor %}
+        </div>
+        <div class="price-margin-right" style="flex:1 1 auto; min-width:400px;">
+            {% for line in fieldset %}
+                {% if "margin_preview_placeholder" in line.fields %}
+                    {% include "admin/pricelist/combination/fieldset_line.html" %}
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</fieldset>

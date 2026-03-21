@@ -1,0 +1,559 @@
+# Dutch translations for Ticketcounter frontend
+msgid ""
+msgstr ""
+"Project-Id-Version: Ticketcounter\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-03-14 12:00+0000\n"
+"PO-Revision-Date: 2026-03-14 12:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: nl\n"
+"Language: nl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Ticketcounter"
+msgstr "Ticketcounter"
+
+msgid "Welcome to Ticketcounter"
+msgstr "Welkom bij Ticketcounter"
+
+msgctxt "home page greeting before site name"
+msgid "Welcome to"
+msgstr "Welkom bij"
+
+msgid "View our price list or create a proposal for your contract."
+msgstr "Bekijk onze prijslijst of maak een offerte voor uw contract."
+
+msgid "Products"
+msgstr "Producten"
+
+msgid "Combinations"
+msgstr "Combinaties"
+
+msgid "Proposal"
+msgstr "Offerte"
+
+msgid "New proposal"
+msgstr "Nieuwe offerte"
+
+msgid "Price list"
+msgstr "Prijslijst"
+
+msgid "All products"
+msgstr "Alle producten"
+
+msgid "Packages and bundles"
+msgstr "Pakketten en bundels"
+
+msgid "Adjust quantities; the total updates in real time."
+msgstr "Pas aantallen aan; het totaal wordt direct bijgewerkt."
+
+msgid "Product / Package"
+msgstr "Product / Pakket"
+
+msgid "Unit price"
+msgstr "Stukprijs"
+
+msgid "Quantity"
+msgstr "Aantal"
+
+msgid "Grand total"
+msgstr "Totaalbedrag"
+
+msgid "Package"
+msgstr "Pakket"
+
+msgid "No products or combinations available. Add items in the admin to show them here."
+msgstr "Geen producten of combinaties beschikbaar. Voeg items toe in het beheer om ze hier te tonen."
+
+msgid "Maintenance contract options"
+msgstr "Onderhoudscontractopties"
+
+msgid "Based on the hardware in your proposal. Amounts update when you change quantities."
+msgstr "Gebaseerd op de hardware in uw offerte. Bedragen worden bijgewerkt wanneer u aantallen wijzigt."
+
+msgid "Total contract"
+msgstr "Totaal contract"
+
+msgid "Per month"
+msgstr "Per maand"
+
+msgid "How we calculate this"
+msgstr "Zo rekenen we dit uit"
+
+msgid "Contract period"
+msgstr "Contractperiode"
+
+msgid "months"
+msgstr "maanden"
+
+msgid "years"
+msgstr "jaar"
+
+msgid "Hardware fee"
+msgstr "Hardwarefee"
+
+msgid "Visit time"
+msgstr "Bezoektijd"
+
+msgid "Labour costs"
+msgstr "Arbeidskosten"
+
+msgid "of purchase value"
+msgstr "van aankoopwaarde"
+
+msgid "per visit"
+msgstr "per bezoek"
+
+msgid "product(s)"
+msgstr "product(en)"
+
+msgid "Above minimum of {min} min."
+msgstr "Boven minimum van {min} min."
+
+msgid "Below minimum of {min} min, so we use {min} min."
+msgstr "Onder minimum van {min} min, dus we gebruiken {min} min."
+
+msgid "hourly rate"
+msgstr "uurtarief"
+
+msgid "visits in contract period"
+msgstr "bezoeken in contractperiode"
+
+msgid "Reference"
+msgstr "Referentie"
+
+msgid "Save calculation"
+msgstr "Offerte opslaan"
+
+msgid "Saved calculations"
+msgstr "Opgeslagen offertes"
+
+msgid "e.g. offerte 2024-001"
+msgstr "bijv. offerte 2024-001"
+
+msgid "Open a saved calculation to view, update prices to current rates, or edit."
+msgstr "Open een opgeslagen offerte om te bekijken, prijzen te actualiseren of te bewerken."
+
+msgid "Updated"
+msgstr "Bijgewerkt"
+
+msgid "Actions"
+msgstr "Acties"
+
+msgid "View"
+msgstr "Bekijken"
+
+msgid "Edit"
+msgstr "Bewerken"
+
+msgid "No saved calculations yet. Create a proposal and use \"Save calculation\" to store it."
+msgstr "Nog geen opgeslagen offertes. Maak een offerte en gebruik \"Offerte opslaan\" om deze op te slaan."
+
+msgid "Back to proposal"
+msgstr "Terug naar offerte"
+
+msgid "(No reference)"
+msgstr "(Geen referentie)"
+
+msgid "Saved calculation"
+msgstr "Opgeslagen offerte"
+
+msgid "Saved on"
+msgstr "Opgeslagen op"
+
+msgid "Last updated"
+msgstr "Laatst bijgewerkt"
+
+msgid "Update to current rates"
+msgstr "Actualiseren naar huidige tarieven"
+
+msgid "History"
+msgstr "Historie"
+
+msgid "No longer in catalog"
+msgstr "Niet meer in catalogus"
+
+msgid "No lines in this calculation."
+msgstr "Geen regels in deze berekening."
+
+msgid "Based on the hardware in this saved calculation."
+msgstr "Gebaseerd op de hardware in deze opgeslagen berekening."
+
+msgid "Based on the hardware in this saved calculation. Contract options and percentages as at save date."
+msgstr "Gebaseerd op de hardware in deze opgeslagen berekening. Contractopties en percentages zoals op opslagdatum."
+
+msgid "Contract form removed"
+msgstr "Contractvorm verwijderd"
+
+msgid "Contract form added later"
+msgstr "Contractvorm later toegevoegd"
+
+msgid "Contract terms changed since save"
+msgstr "Contractvoorwaarden gewijzigd sinds opslaan"
+
+msgid "Back to calculation"
+msgstr "Terug naar berekening"
+
+msgid "Changes and updates to this calculation."
+msgstr "Wijzigingen en actualisaties van deze berekening."
+
+msgid "Orders created from saved calculations. Open an order to see per-supplier lines and update ordering and delivery status."
+msgstr "Bestellingen aangemaakt op basis van opgeslagen offertes. Open een bestelling om per leverancier de regels te zien en bestel- en leverstatus bij te werken."
+
+msgid "From calculation"
+msgstr "Van offerte"
+
+msgid "Created"
+msgstr "Aangemaakt"
+
+msgid "by"
+msgstr "door"
+
+msgid "No history entries yet."
+msgstr "Nog geen historie."
+
+msgid "Reference: %(ref)s"
+msgstr "Referentie: %(ref)s"
+
+msgid "Prices updated to current rates. %(updated)d lines updated, %(removed)d marked as no longer in catalog."
+msgstr "Prijzen geactualiseerd naar huidige tarieven. %(updated)d regels bijgewerkt, %(removed)d gemarkeerd als niet meer in catalogus."
+
+msgid "(Removed combination)"
+msgstr "(Verwijderde combinatie)"
+
+msgid "(Removed product)"
+msgstr "(Verwijderd product)"
+
+msgid "Item"
+msgstr "Item"
+
+msgid "(Unknown item)"
+msgstr "(Onbekend item)"
+
+msgid "Currency and number format"
+msgstr "Valuta en getalnotatie"
+
+msgid "Currency and rounding apply to the price list, product pages and proposals. Minimum margin percent is used for combinations (0 = no check)."
+msgstr "Valuta en afronding gelden voor de prijslijst, productpagina's en offertes. Minimale marge % wordt gebruikt voor combinaties (0 = geen controle)."
+
+msgid "Price list and product page display"
+msgstr "Weergave prijslijst en productpagina"
+
+msgid "What to show on the public price list and product detail pages."
+msgstr "Wat getoond wordt op de openbare prijslijst en productpagina."
+
+msgid "Language"
+msgstr "Taal"
+
+msgid "Language for the price list and proposal pages. The admin interface keeps the browser or system language."
+msgstr "Taal voor de prijslijst en offertepagina's. Het beheer behoudt de browsertaal of systeemtaal."
+
+msgid "Maintenance contract calculation"
+msgstr "Onderhoudscontractberekening"
+
+msgid "Used on the proposal page for maintenance contract options. Time in minutes; hourly rate in your currency. Visits per contract are set per contract duration. Enable the fee calculation option to show the breakdown under each contract option."
+msgstr "Gebruikt op de offertepagina voor onderhoudscontractopties. Tijd in minuten; uurtarief in uw valuta. Bezoeken per contract worden per contractduur ingesteld. Zet de optie voor fee-berekening aan om de uitsplitsing onder elke contractoptie te tonen."
+
+msgid "No saved proposal found with this identifier or reference."
+msgstr "Geen opgeslagen offerte gevonden met dit kenmerk of deze referentie."
+
+msgid "Ticketcounter - Price list"
+msgstr "Ticketcounter - Prijslijst"
+
+msgid "Overview of standalone products and packages / combinations."
+msgstr "Overzicht van losse producten en pakketten / combinaties."
+
+msgid "Generated on:"
+msgstr "Gegenereerd op:"
+
+msgid "Download as PDF"
+msgstr "Download als PDF"
+
+msgid "Standalone products"
+msgstr "Losse producten"
+
+msgid "All current products with sales prices and last price change."
+msgstr "Alle actuele producten met verkoopprijzen en laatste prijswijziging."
+
+msgid "Filter by category:"
+msgstr "Filter op categorie:"
+
+msgid "All categories"
+msgstr "Alle categorieën"
+
+msgid "Selected:"
+msgstr "Geselecteerd:"
+
+msgid "Supplier:"
+msgstr "Leverancier:"
+
+msgid "Show product details"
+msgstr "Toon productdetails"
+
+msgid "Sales pitch"
+msgstr "Salespitch"
+
+msgid "USPs"
+msgstr "USP's"
+
+msgid "Sales price"
+msgstr "Verkoopprijs"
+
+msgid "Options"
+msgstr "Opties"
+
+msgid "Price last checked:"
+msgstr "Prijs laatst gecontroleerd:"
+
+msgid "Price last changed:"
+msgstr "Prijs laatst gewijzigd:"
+
+msgid "No products have been created yet."
+msgstr "Er zijn nog geen producten aangemaakt."
+
+msgid "Packages / Combinations"
+msgstr "Pakketten / Combinaties"
+
+msgid "Bundles of multiple products with attractive offer prices."
+msgstr "Bundels van meerdere producten met aantrekkelijke actieprijzen."
+
+msgid "In this package"
+msgstr "In dit pakket"
+
+msgid "No items in this combination yet."
+msgstr "Nog geen items in deze combinatie."
+
+msgid "No products linked to this combination yet."
+msgstr "Nog geen producten gekoppeld aan deze combinatie."
+
+msgid "Price changes within this package:"
+msgstr "Prijswijzigingen binnen dit pakket:"
+
+msgid "From"
+msgstr "Van"
+
+msgid "Offer price"
+msgstr "Actieprijs"
+
+msgid "No packages / combinations have been created yet."
+msgstr "Er zijn nog geen pakketten / combinaties aangemaakt."
+
+msgid "Detail page for one product from the price list."
+msgstr "Detailpagina van één product uit de prijslijst."
+
+msgid "Back to price list"
+msgstr "Terug naar prijslijst"
+
+msgid "Supplier order number:"
+msgstr "Bestelnummer leverancier:"
+
+msgid "Article number:"
+msgstr "Artikelnummer:"
+
+msgid "Price history (cost and sales)"
+msgstr "Prijsverloop (inkoop en verkoop)"
+
+msgid "Price history (cost price)"
+msgstr "Prijsverloop (inkoopprijs)"
+
+msgid "Price history (sales price)"
+msgstr "Prijsverloop (verkoopprijs)"
+
+msgid "Cost price"
+msgstr "Inkoopprijs"
+
+msgid "This product appears in the following packages / combinations"
+msgstr "Dit product komt voor in de volgende pakketten / combinaties"
+
+# Admin & model names
+msgid "Supplier"
+msgstr "Leverancier"
+
+msgid "Suppliers"
+msgstr "Leveranciers"
+
+msgid "Category"
+msgstr "Categorie"
+
+msgid "Categories"
+msgstr "Categorieën"
+
+msgid "General setting"
+msgstr "Algemene instelling"
+
+msgid "General settings"
+msgstr "Algemene instellingen"
+
+msgid "Profit profile"
+msgstr "Winstprofiel"
+
+msgid "Profit profiles"
+msgstr "Winstprofielen"
+
+msgid "Product option"
+msgstr "Productoptie"
+
+msgid "Product options"
+msgstr "Productopties"
+
+msgid "Price history"
+msgstr "Prijshistorie"
+
+msgid "Price histories"
+msgstr "Prijsgeschiedenissen"
+
+msgid "Combination item"
+msgstr "Combinatie-item"
+
+msgid "Combination items"
+msgstr "Combinatie-items"
+
+msgid "Combination items (product + selected options)"
+msgstr "Combinatie-items (product + geselecteerde opties)"
+
+msgid "Combination"
+msgstr "Combinatie"
+
+msgid "Combinations"
+msgstr "Combinaties"
+
+msgid "Calculated sales price"
+msgstr "Berekende verkoopprijs"
+
+msgid "Price and margin"
+msgstr "Prijs en marge"
+
+msgid "Left: offer and discount (for margin products only). Right: live margin overview."
+msgstr "Links: aanbieding en korting (alleen voor marge-producten). Rechts: live marge-overzicht."
+
+msgid "Discount"
+msgstr "Korting"
+
+msgid "Discount amount"
+msgstr "Kortingsbedrag"
+
+msgid "Discount percentage"
+msgstr "Kortingspercentage"
+
+msgid "English"
+msgstr "Engels"
+
+msgid "Dutch"
+msgstr "Nederlands"
+
+msgid "Language (frontend)"
+msgstr "Taal (frontend)"
+
+msgid "No offer (set at regular prices)"
+msgstr "Geen aanbieding (tegen reguliere prijzen)"
+
+msgid "Fixed amount (offer price)"
+msgstr "Vast bedrag (aanbiedingsprijs)"
+
+msgid "Order"
+msgstr "Volgorde"
+
+msgid "Orders"
+msgstr "Bestellingen"
+
+msgctxt "purchase_order"
+msgid "Order"
+msgstr "Bestelling"
+
+msgid "Product"
+msgstr "Product"
+
+msgid "Main product"
+msgstr "Hoofdproduct"
+
+msgid "Option (product)"
+msgstr "Optie (product)"
+
+msgid "Selected options"
+msgstr "Geselecteerde opties"
+
+msgid "Catalog"
+msgstr "Catalogus"
+
+msgid "Currency"
+msgstr "Valuta"
+
+msgid "Rounding"
+msgstr "Afronding"
+
+msgid "Number format"
+msgstr "Getalnotatie"
+
+msgid "Minimum margin %"
+msgstr "Minimale marge %"
+
+msgid "Name"
+msgstr "Naam"
+
+msgid "Description"
+msgstr "Omschrijving"
+
+msgid "Item"
+msgstr "Regel"
+
+msgid "Margin products"
+msgstr "Marge producten"
+
+msgid "Other revenue"
+msgstr "Overige omzet"
+
+msgid "Other revenue (not discountable)"
+msgstr "Overige omzet (niet kortbaar)"
+
+msgid "Total"
+msgstr "Totaal"
+
+msgid "Subtotal"
+msgstr "Subtotaal"
+
+msgid "Margin"
+msgstr "Marge"
+
+msgid "Discount (fixed amount or %)"
+msgstr "Korting (vast bedrag of %)"
+
+msgid "Margin after discount"
+msgstr "Marge na korting"
+
+msgid "Selling price"
+msgstr "Verkoopprijs"
+
+msgid "Info"
+msgstr "Informatief"
+
+msgid "Below minimum margin ({min}%)"
+msgstr "Onder minimale marge ({min}%)"
+
+msgid "Only the options that belong to this product."
+msgstr "Alleen de opties die bij dit product horen."
+
+msgid "No product with this article number."
+msgstr "Geen product met dit artikelnummer."
+
+msgid "Option"
+msgstr "Optie"
+
+msgid "Price last changed"
+msgstr "Prijs laatst gewijzigd"
+
+msgid "Previous cost price"
+msgstr "Vorige inkoopprijs"
+
+msgid "New cost price"
+msgstr "Nieuwe inkoopprijs"
+
+msgid "Change date"
+msgstr "Wijzigingsdatum"
+
+msgid "Select a profit profile for this product."
+msgstr "Selecteer een winstprofiel voor dit product."
+
+msgid "The selected profit profile is inactive. Choose an active profit profile."
+msgstr "Het geselecteerde winstprofiel is inactief. Kies een actief winstprofiel."

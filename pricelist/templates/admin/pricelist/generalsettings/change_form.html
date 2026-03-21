@@ -1,0 +1,12 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block extrahead %}{{ block.super }}
+<style>
+  /* Keep checkbox/option labels on one line (e.g. "Show price history chart on product page") */
+  #content-main .aligned label,
+  #content-main .form-row label {
+    white-space: nowrap;
+  }
+</style>
+{% endblock %}

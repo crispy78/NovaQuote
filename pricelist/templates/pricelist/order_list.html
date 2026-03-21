@@ -1,0 +1,68 @@
+{% extends "pricelist/base.html" %}
+{% load i18n %}
+{% load pricelist_filters %}
+{# Context: orders (queryset with proposal, created_at), settings. Order status shown via order.get_status_display. #}
+
+{% block title %}{% trans "Orders" %} – {{ general_settings.site_name|default:"NovaQuote" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-[var(--brand)]">
+            {% trans "Orders" %}
+        </h1>
+        <p class="mt-1 text-slate-600">
+            {% trans "Orders created from saved calculations. Open an order to see per-supplier lines and update ordering and delivery status." %}
+        </p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <table class="w-full text-left">
+            <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                    <th scope="col" class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Reference" %}</th>
+                    <th scope="col" class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Status" %}</th>
+                    <th scope="col" class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "From calculation" %}</th>
+                    <th scope="col" class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Created" %}</th>
+                    <th scope="col" class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right w-48">{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr class="border-b border-slate-100 hover:bg-slate-50/50">
+                    <td class="px-4 py-3">
+                        <a href="{% url 'pricelist:order_detail_uuid' pk=order.uuid %}" class="font-medium text-[var(--brand)] hover:underline">
+                            {{ order.reference|default:order.proposal.reference|default:_("(No reference)") }}
+                        </a>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium
+                            {% if order.status == 'completed' %}bg-emerald-100 text-emerald-800
+                            {% elif order.status == 'cancelled' %}bg-slate-100 text-slate-700
+                            {% elif order.status == 'sent' %}bg-sky-100 text-sky-800
+                            {% else %}bg-amber-100 text-amber-800{% endif %}">
+                            {{ order.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-slate-600 text-sm">
+                        <a href="{% url 'pricelist:proposal_detail' identifier=order.proposal.uuid %}" class="text-slate-600 hover:text-[var(--brand)]">{{ order.proposal.reference|default:order.proposal.uuid }}</a>
+                    </td>
+                    <td class="px-4 py-3 text-slate-600 text-sm">{{ order.created_at|date:"d-m-Y H:i" }}</td>
+                    <td class="px-4 py-3 text-right">
+                        <a href="{% url 'pricelist:order_detail_uuid' pk=order.uuid %}" class="text-sm font-medium text-[var(--brand)] hover:underline">{% trans "View order" %}</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-4 py-8 text-center text-slate-500">{% trans "No orders yet. Save a calculation, create an invoice, mark it as sent, then create an order from the calculation or invoice page." %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <p class="mt-6">
+        <a href="{% url 'pricelist:proposal_list' %}" class="text-sm font-medium text-[var(--brand)] hover:underline">← {% trans "Saved calculations" %}</a>
+    </p>
+</div>
+{% endblock %}

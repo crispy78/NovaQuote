@@ -1,0 +1,442 @@
+.tc-admin-branding {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.tc-admin-logo {
+  max-height: 48px;
+  max-width: 180px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.tc-admin-title {
+  margin: 0;
+  font-size: 27px;  /* 1.5 × 18px */
+  font-weight: 600;
+}
+
+/* Header white, bar below in PMS226c; extra padding for 1.5× logo/title */
+#header,
+.branding {
+  background-color: #ffffff !important;
+  border-bottom: 3px solid var(--brand) !important;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  min-height: 72px !important;
+  box-sizing: border-box !important;
+}
+
+#header a,
+#header a:link,
+#header a:visited,
+.branding a,
+.branding a:link,
+.branding a:visited,
+.tc-admin-title {
+  color: var(--brand) !important;
+}
+
+/* Breadcrumb bar directly below header in PMS226c */
+.breadcrumbs {
+  background-color: var(--brand) !important;
+  color: #ffffff !important;
+  border-bottom: 1px solid var(--brand-hover) !important;
+}
+
+.breadcrumbs a,
+.breadcrumbs a:link,
+.breadcrumbs a:visited {
+  color: #ffffff !important;
+}
+
+/* Top right: "Welcome, {username}" and links clearly visible */
+#user-tools,
+#user-tools a,
+#user-tools a:link,
+#user-tools a:visited {
+  color: #444444 !important; /* dark grey for readability on white */
+}
+
+#user-tools a:hover {
+  color: var(--brand) !important;
+}
+
+/* Sidebar and section headers in brand style */
+/* Left sidebar: fixed width, balanced so middle column has room (Django default 275px) */
+#nav-sidebar {
+  flex: 0 0 300px !important;
+  min-width: 300px !important;
+  background-color: #fdf2f8 !important; /* soft variant */
+}
+
+.main.shifted > #nav-sidebar + .content {
+  max-width: calc(100% - 324px) !important; /* 23px toggle + 300px sidebar + 1px border */
+}
+
+#nav-sidebar .current-model,
+#nav-sidebar .current-app .section {
+  background-color: var(--brand) !important;
+  color: #ffffff !important;
+}
+
+#nav-sidebar .current-model a,
+#nav-sidebar .current-app .section a {
+  color: #ffffff !important;
+}
+
+#nav-sidebar .module.current-app .model,
+#nav-sidebar .module .model:hover {
+  border-left: 3px solid var(--brand) !important;
+}
+
+/* Active links and buttons in admin */
+.module caption,
+.button,
+.submit-row input.default,
+input[type="submit"].default,
+.button.default {
+  background-color: var(--brand) !important;
+  border-color: var(--brand) !important;
+}
+
+.module caption a,
+.button,
+.submit-row input.default,
+input[type="submit"].default,
+.button.default {
+  color: #ffffff !important;
+}
+
+/* Hover states slightly adjusted */
+.button:hover,
+.submit-row input.default:hover,
+input[type="submit"].default:hover,
+.button.default:hover {
+  background-color: var(--brand-hover) !important;
+  border-color: var(--brand-hover) !important;
+}
+
+/* General links in brand colour (unless overridden elsewhere) */
+.content a,
+.dashboard a,
+.module a,
+.submit-row a {
+  color: var(--brand) !important;
+}
+
+/* Inline group / table headers in brand colour instead of teal */
+.inline-group h2,
+.module caption,
+.module h2 {
+  background-color: var(--brand) !important;
+  color: #ffffff !important;
+}
+
+/* All submit buttons for consistent styling */
+.submit-row input,
+.submit-row input.default,
+input[type="submit"],
+input[type="submit"].default {
+  background-color: var(--brand) !important;
+  border-color: var(--brand) !important;
+  color: #ffffff !important;
+}
+
+.submit-row input:hover,
+input[type="submit"]:hover {
+  background-color: var(--brand-hover) !important;
+  border-color: var(--brand-hover) !important;
+}
+
+/* Delete button calmer red/pink variant */
+.submit-row a.deletelink {
+  background-color: #ffffff !important;
+  border: 1px solid var(--brand) !important;
+  color: var(--brand) !important;
+}
+
+.submit-row a.deletelink:hover {
+  background-color: #fde7f3 !important;
+}
+
+/* Hide dark/light mode toggle (we use fixed PMS226c styling) */
+button[aria-label*="Toggle theme"],
+button[title*="Toggle theme"],
+.theme-toggle {
+  display: none !important;
+}
+
+/* --- Cleaner admin: readable text, no cut-off, grouped fieldsets --- */
+#content-main .module,
+#content-main form .aligned {
+  max-width: 52em;
+}
+
+/* Fieldset descriptions: full text visible, no cut-off */
+#content-main .module .description,
+#content-main .module.aligned .description {
+  display: block !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  line-height: 1.5 !important;
+  margin-top: 0.5em !important;
+  margin-bottom: 1em !important;
+  padding: 0.5em 0 !important;
+  color: #555 !important;
+}
+
+/* Field help text: readable, not interrupted */
+#content-main .help,
+#content-main p.help,
+#content-main .form-row .help {
+  display: block !important;
+  max-width: 100% !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  line-height: 1.5 !important;
+  margin-top: 0.25em !important;
+  margin-bottom: 0.5em !important;
+  color: #555 !important;
+}
+
+/* Section headers (fieldset titles) clear and grouped */
+#content-main .module h2.fieldset-heading,
+#content-main .module.aligned h2 {
+  font-size: 1.1rem !important;
+  margin-top: 1.25rem !important;
+  margin-bottom: 0.5rem !important;
+  padding-bottom: 0.35rem !important;
+  border-bottom: 2px solid var(--brand) !important;
+  color: #333 !important;
+}
+
+#content-main .tc-fieldset-group:first-child h2.fieldset-heading,
+#content-main .tc-fieldset-group:first-child h2 {
+  margin-top: 0 !important;
+}
+
+#content-main .aligned .form-row {
+  overflow: visible !important;
+}
+
+/* Aligned form: label and input row – give help text full row so it doesn’t get cut off */
+#content-main .aligned label + p.help,
+#content-main .aligned .help {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* Checkbox rows: help text below on its own row for readability */
+#content-main .aligned ul li {
+  margin-bottom: 0.75em !important;
+}
+
+#content-main .aligned ul li .help {
+  display: block !important;
+  margin-top: 0.25em !important;
+}
+
+/* --- Rounded / fresh look (align with frontend) --- */
+/* Logo/header area: no rounded corners, stay plain white */
+#header {
+  border-radius: 0 !important;
+}
+
+/* Navigation bar (breadcrumbs): rounded top corners */
+nav[aria-label="Breadcrumbs"] .breadcrumbs,
+.breadcrumbs {
+  border-radius: 12px 12px 0 0 !important;
+  margin: 0 10px 0 0 !important;
+}
+
+#nav-sidebar {
+  border-radius: 0 12px 12px 0 !important;
+}
+
+/* Catalog and other app modules: rounded */
+#nav-sidebar .module {
+  border-radius: 10px !important;
+  overflow: hidden !important;
+}
+
+/* Authentication and Authorization: separate from Catalog, rounded bottom */
+#nav-sidebar .app-auth.module {
+  margin-top: 1rem !important;
+  border-radius: 0 0 12px 12px !important;
+}
+
+#nav-sidebar .app-auth.module caption,
+#nav-sidebar .app-auth.module table {
+  border-radius: 0 0 12px 12px !important;
+}
+
+/* General settings in sidebar: same frame as Authentication and Authorization / Catalog (rounded top + bottom) */
+.tc-general-settings-module {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  margin-bottom: 1rem !important;
+  border: none !important;
+  box-shadow: none !important;
+  background-color: #ffffff !important;
+}
+
+.tc-general-settings-module caption,
+.tc-general-settings-module .tc-general-settings-caption {
+  background-color: var(--brand) !important;
+  color: #ffffff !important;
+  border-radius: 12px 12px 0 0 !important;
+}
+
+.tc-general-settings-module caption a,
+.tc-general-settings-module .tc-general-settings-caption a {
+  color: #ffffff !important;
+}
+
+.tc-general-settings-module table {
+  border-radius: 0 0 12px 12px !important;
+  background-color: #ffffff !important;
+}
+
+/* Dashboard: General settings card – same style as other modules (readable header + button, no pink border) */
+.app-list .tc-general-settings-card {
+  border: none !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  margin-bottom: 1.5rem !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+  padding: 0 !important;
+}
+
+.app-list .tc-general-settings-card h2 {
+  margin: 0 !important;
+  background-color: var(--brand) !important;
+  color: #ffffff !important;
+  border-radius: 12px 12px 0 0 !important;
+  padding: 0.5em 1rem !important;
+}
+
+.app-list .tc-general-settings-card h2 a {
+  color: #ffffff !important;
+}
+
+.app-list .tc-general-settings-card .tc-general-settings-description {
+  color: #555 !important;
+  margin: 0.5em 1rem 1em !important;
+}
+
+.app-list .tc-general-settings-card p:last-of-type {
+  padding: 0 1rem 1rem !important;
+}
+
+.app-list .tc-general-settings-card .button {
+  background-color: var(--brand) !important;
+  border-color: var(--brand) !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
+}
+
+.app-list .tc-general-settings-card .button:hover {
+  background-color: var(--brand-hover) !important;
+  border-color: var(--brand-hover) !important;
+  color: #ffffff !important;
+}
+
+#nav-sidebar .module caption,
+#nav-sidebar .module h2,
+.inline-group h2,
+.module caption,
+.module h2 {
+  border-radius: 10px 10px 0 0 !important;
+}
+
+#content-main .module h2.fieldset-heading,
+#content-main .module.aligned h2 {
+  border-radius: 8px 8px 0 0 !important;
+  padding: 0.5em 0.75em !important;
+}
+
+/* Buttons and inputs: rounded */
+.button,
+.submit-row input,
+input[type="submit"],
+input[type="button"],
+button[type="submit"] {
+  border-radius: 8px !important;
+}
+
+.submit-row a.deletelink {
+  border-radius: 8px !important;
+}
+
+#content-main input[type="text"],
+#content-main input[type="number"],
+#content-main input[type="email"],
+#content-main input[type="url"],
+#content-main input[type="password"],
+#content-main textarea,
+#content-main select {
+  border-radius: 8px !important;
+}
+
+/* Main content area: subtle rounded panels */
+#content-main .module {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* --- Three-column layout: give middle column room, avoid cramped content --- */
+/* Content wrapper: ensure room for main content (no extra squeezing) */
+#content {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Changelist (list pages with filter): middle column has minimum width so table isn't squashed */
+#changelist .changelist-form-container {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+#changelist .changelist-form-container > div:first-child {
+  min-width: 420px !important;
+  flex: 1 1 420px !important;
+}
+
+/* Slightly narrower filter column so middle gets more space (Django default 240px) */
+#changelist-filter {
+  flex: 0 0 200px !important;
+  min-width: 200px !important;
+}
+
+#changelist .changelist-form-container:has(#changelist-filter) > div:first-child {
+  max-width: calc(100% - 230px) !important; /* leave room for filter (200px + 30px margin) */
+}
+
+/* Right sidebar (content-related) a bit narrower on changelist so main content breathes */
+.colMS {
+  margin-right: 260px !important;
+}
+
+#content-related {
+  width: 220px !important;
+  margin-right: -260px !important;
+}
+
+/* Form pages (change form): keep readable width, don't limit to 52em on wide screens for changelist */
+#content-main .module,
+#content-main form .aligned {
+  max-width: 52em;
+}
+
+.change-list #content-main .module,
+.change-list #content-main form .aligned {
+  max-width: none;
+}
+

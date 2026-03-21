@@ -1,0 +1,121 @@
+/* Logo in header: max size fits main nav bar (min-h-32 + header py-2) */
+.logo-header {
+  max-height: 120px;
+  max-width: 200px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+/* Brand colour from General Settings (CSS vars in base.html: effective primary / hover) */
+.text-brand { color: var(--brand); }
+.bg-brand { background-color: var(--brand); }
+.border-brand { border-color: var(--brand); }
+.hover\:text-brand:hover { color: var(--brand); }
+.hover\:bg-brand:hover { background-color: var(--brand); }
+.hover\:bg-brand-hover:hover { background-color: var(--brand-hover); }
+.hover\:text-brand-hover:hover { color: var(--brand-hover); }
+.hover\:border-brand:hover { border-color: var(--brand); }
+.focus\:ring-brand:focus { --tw-ring-color: var(--brand); }
+.focus\:border-brand:focus { border-color: var(--brand); }
+.bg-brand\/5 { background-color: color-mix(in srgb, var(--brand) 5%, transparent); }
+.bg-brand\/10 { background-color: color-mix(in srgb, var(--brand) 10%, transparent); }
+.border-brand\/20 { border-color: color-mix(in srgb, var(--brand) 20%, transparent); }
+.group:hover .group-hover\:text-brand { color: var(--brand); }
+.group:hover .group-hover\:bg-brand\/10 { background-color: color-mix(in srgb, var(--brand) 10%, transparent); }
+
+/* Frontend: geen streep onder links; kleurwissel en hover volstaan */
+a {
+  text-decoration: none;
+}
+
+/* Product card: image area ~60% van de kaart */
+.product-card-image {
+  min-height: 12rem;
+}
+
+/* Price list: categories fly out to the right so "Combinations" stays visible (no in-panel scroll). */
+.nav-products-group {
+  position: relative;
+}
+
+.nav-products-categories {
+  position: absolute;
+  left: calc(100% + 2px);
+  top: 0;
+  z-index: 70;
+  min-width: 12.5rem;
+  max-width: 16rem;
+  max-height: min(70vh, 22rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0.35rem 0;
+  margin: 0;
+  background: #fff;
+  border: 1px solid rgb(226 232 240);
+  border-radius: 0.75rem;
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(-4px);
+  transition:
+    opacity 0.12s ease-out,
+    transform 0.12s ease-out,
+    visibility 0.12s;
+}
+
+/* Bridge gap between "Products" row and flyout so the pointer path does not close the menu */
+.nav-products-categories::before {
+  content: "";
+  position: absolute;
+  right: 100%;
+  top: 0;
+  width: 0.75rem;
+  height: 3.25rem;
+}
+
+.nav-products-group:hover .nav-products-categories,
+#nav-price-list-menu.products-expanded .nav-products-categories {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
+.nav-products-group:hover .nav-products-chevron,
+#nav-price-list-menu.products-expanded .nav-products-chevron {
+  transform: rotate(90deg);
+}
+
+@media (max-width: 767px) {
+  .nav-products-categories {
+    position: static;
+    left: auto;
+    top: auto;
+    z-index: auto;
+    min-width: 0;
+    max-width: none;
+    max-height: 11rem;
+    margin: 0.25rem 0.5rem 0.5rem;
+    border-radius: 0.5rem;
+    box-shadow: none;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+    transition: none;
+  }
+
+  .nav-products-categories::before {
+    display: none;
+  }
+
+  .nav-products-group:hover .nav-products-chevron,
+  #nav-price-list-menu.products-expanded .nav-products-chevron {
+    transform: none;
+  }
+}

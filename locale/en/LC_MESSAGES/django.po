@@ -1,0 +1,300 @@
+# English (default)
+msgid ""
+msgstr ""
+"Project-Id-Version: Ticketcounter\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Ticketcounter - Price list"
+msgstr "Ticketcounter - Price list"
+
+msgid "Overview of standalone products and packages / combinations."
+msgstr "Overview of standalone products and packages / combinations."
+
+msgid "Generated on:"
+msgstr "Generated on:"
+
+msgid "Download as PDF"
+msgstr "Download as PDF"
+
+msgid "Standalone products"
+msgstr "Standalone products"
+
+msgid "All current products with sales prices and last price change."
+msgstr "All current products with sales prices and last price change."
+
+msgid "Filter by category:"
+msgstr "Filter by category:"
+
+msgid "All categories"
+msgstr "All categories"
+
+msgid "Selected:"
+msgstr "Selected:"
+
+msgid "Supplier:"
+msgstr "Supplier:"
+
+msgid "Show product details"
+msgstr "Show product details"
+
+msgid "Sales pitch"
+msgstr "Sales pitch"
+
+msgid "USPs"
+msgstr "USPs"
+
+msgid "Sales price"
+msgstr "Sales price"
+
+msgid "Options"
+msgstr "Options"
+
+msgid "Price last checked:"
+msgstr "Price last checked:"
+
+msgid "Price last changed:"
+msgstr "Price last changed:"
+
+msgid "No products have been created yet."
+msgstr "No products have been created yet."
+
+msgid "Packages / Combinations"
+msgstr "Packages / Combinations"
+
+msgid "Bundles of multiple products with attractive offer prices."
+msgstr "Bundles of multiple products with attractive offer prices."
+
+msgid "In this package"
+msgstr "In this package"
+
+msgid "No items in this combination yet."
+msgstr "No items in this combination yet."
+
+msgid "No products linked to this combination yet."
+msgstr "No products linked to this combination yet."
+
+msgid "Price changes within this package:"
+msgstr "Price changes within this package:"
+
+msgid "From"
+msgstr "From"
+
+msgid "Offer price"
+msgstr "Offer price"
+
+msgid "No packages / combinations have been created yet."
+msgstr "No packages / combinations have been created yet."
+
+msgid "Detail page for one product from the price list."
+msgstr "Detail page for one product from the price list."
+
+msgid "Back to price list"
+msgstr "Back to price list"
+
+msgid "Supplier order number:"
+msgstr "Supplier order number:"
+
+msgid "Article number:"
+msgstr "Article number:"
+
+msgid "Price history (cost and sales)"
+msgstr "Price history (cost and sales)"
+
+msgid "Price history (cost price)"
+msgstr "Price history (cost price)"
+
+msgid "Price history (sales price)"
+msgstr "Price history (sales price)"
+
+msgid "Cost price"
+msgstr "Cost price"
+
+msgid "This product appears in the following packages / combinations"
+msgstr "This product appears in the following packages / combinations"
+
+# Admin & model names
+msgid "Supplier"
+msgstr "Supplier"
+
+msgid "Suppliers"
+msgstr "Suppliers"
+
+msgid "Category"
+msgstr "Category"
+
+msgid "Categories"
+msgstr "Categories"
+
+msgid "General setting"
+msgstr "General setting"
+
+msgid "General settings"
+msgstr "General settings"
+
+msgid "Profit profile"
+msgstr "Profit profile"
+
+msgid "Profit profiles"
+msgstr "Profit profiles"
+
+msgid "Product option"
+msgstr "Product option"
+
+msgid "Product options"
+msgstr "Product options"
+
+msgid "Price history"
+msgstr "Price history"
+
+msgid "Price histories"
+msgstr "Price histories"
+
+msgid "Combination item"
+msgstr "Combination item"
+
+msgid "Combination items"
+msgstr "Combination items"
+
+msgid "Combination items (product + selected options)"
+msgstr "Combination items (product + selected options)"
+
+msgid "Combination"
+msgstr "Combination"
+
+msgid "Combinations"
+msgstr "Combinations"
+
+msgid "Calculated sales price"
+msgstr "Calculated sales price"
+
+msgid "Price and margin"
+msgstr "Price and margin"
+
+msgid "Left: offer and discount (for margin products only). Right: live margin overview."
+msgstr "Left: offer and discount (for margin products only). Right: live margin overview."
+
+msgid "Discount"
+msgstr "Discount"
+
+msgid "Discount amount"
+msgstr "Discount amount"
+
+msgid "Discount percentage"
+msgstr "Discount percentage"
+
+msgid "English"
+msgstr "English"
+
+msgid "Dutch"
+msgstr "Dutch"
+
+msgid "Language (frontend)"
+msgstr "Language (frontend)"
+
+msgid "No offer (set at regular prices)"
+msgstr "No offer (set at regular prices)"
+
+msgid "Fixed amount (offer price)"
+msgstr "Fixed amount (offer price)"
+
+msgid "Order"
+msgstr "Order"
+
+msgid "Product"
+msgstr "Product"
+
+msgid "Main product"
+msgstr "Main product"
+
+msgid "Option (product)"
+msgstr "Option (product)"
+
+msgid "Selected options"
+msgstr "Selected options"
+
+msgid "Catalog"
+msgstr "Catalog"
+
+msgid "Currency"
+msgstr "Currency"
+
+msgid "Rounding"
+msgstr "Rounding"
+
+msgid "Number format"
+msgstr "Number format"
+
+msgid "Minimum margin %"
+msgstr "Minimum margin %"
+
+msgid "Name"
+msgstr "Name"
+
+msgid "Description"
+msgstr "Description"
+
+msgid "Item"
+msgstr "Item"
+
+msgid "Margin products"
+msgstr "Margin products"
+
+msgid "Other revenue"
+msgstr "Other revenue"
+
+msgid "Other revenue (not discountable)"
+msgstr "Other revenue (not discountable)"
+
+msgid "Total"
+msgstr "Total"
+
+msgid "Subtotal"
+msgstr "Subtotal"
+
+msgid "Margin"
+msgstr "Margin"
+
+msgid "Discount (fixed amount or %)"
+msgstr "Discount (fixed amount or %)"
+
+msgid "Margin after discount"
+msgstr "Margin after discount"
+
+msgid "Selling price"
+msgstr "Selling price"
+
+msgid "Info"
+msgstr "Info"
+
+msgid "Below minimum margin ({min}%)"
+msgstr "Below minimum margin ({min}%)"
+
+msgid "Only the options that belong to this product."
+msgstr "Only the options that belong to this product."
+
+msgid "No product with this article number."
+msgstr "No product with this article number."
+
+msgid "Option"
+msgstr "Option"
+
+msgid "Price last changed"
+msgstr "Price last changed"
+
+msgid "Previous cost price"
+msgstr "Previous cost price"
+
+msgid "New cost price"
+msgstr "New cost price"
+
+msgid "Change date"
+msgstr "Change date"
+
+msgid "Select a profit profile for this product."
+msgstr "Select a profit profile for this product."
+
+msgid "The selected profit profile is inactive. Choose an active profit profile."
+msgstr "The selected profit profile is inactive. Choose an active profit profile."

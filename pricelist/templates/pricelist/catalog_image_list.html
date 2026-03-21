@@ -1,0 +1,181 @@
+{% extends "pricelist/base.html" %}
+{% load i18n pricelist_filters %}
+
+{% block title %}{{ page_title }} – {{ general_settings.site_name|default:"NovaQuote" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-[var(--brand)]">{{ page_title }}</h1>
+        <p class="mt-1 text-slate-600">{{ page_subtitle }}</p>
+        <p class="mt-2 text-sm text-slate-500">{% trans "Total stored (listed files)" %}: <strong>{{ total_bytes|nc_filesize }}</strong>
+            {% if unused_count %}
+            · {% blocktrans count counter=unused_count %}One unused file on disk{% plural %}{{ counter }} unused files on disk{% endblocktrans %}
+            {% endif %}
+        </p>
+    </div>
+
+    <form id="catalog-image-bulk-form" method="post" class="space-y-4">
+        {% csrf_token %}
+        <div class="flex flex-wrap items-center gap-2">
+            <button type="button" id="catalog-img-select-all" class="px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
+                {% trans "Select all" %}
+            </button>
+            <button type="button" id="catalog-img-select-none" class="px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
+                {% trans "Select none" %}
+            </button>
+            <button type="button" id="catalog-img-select-unused" class="px-3 py-1.5 text-sm font-medium rounded-lg border border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100"{% if not unused_count %} disabled title="{% trans 'No unused files' %}"{% endif %}>
+                {% trans "Select all unused" %} ({{ unused_count }})
+            </button>
+            <button type="submit" id="catalog-img-delete-selected" class="px-3 py-1.5 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                {% trans "Delete selected" %}
+            </button>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-3 py-3 w-10">
+                                <input type="checkbox" id="catalog-img-header-check" class="rounded border-slate-300 text-[var(--brand)] focus:ring-[var(--brand)]" aria-label="{% trans 'Select all rows' %}">
+                            </th>
+                            <th class="px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide w-20">{% trans "Preview" %}</th>
+                            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "File" %}</th>
+                            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Used by" %}</th>
+                            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Type" %}</th>
+                            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Size" %}</th>
+                            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Modified" %}</th>
+                            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right">{% trans "Action" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in inventory %}
+                        <tr class="border-b border-slate-100 hover:bg-slate-50/50 {% if row.kind == 'orphan' %}bg-amber-50/30{% endif %}">
+                            <td class="px-3 py-3 align-middle">
+                                <input type="checkbox" name="delete_paths" value="{{ row.relative_path }}" class="catalog-img-row-check rounded border-slate-300 text-[var(--brand)] focus:ring-[var(--brand)]" data-unused="{% if row.is_unused %}1{% else %}0{% endif %}">
+                            </td>
+                            <td class="px-3 py-3 align-middle">
+                                {% if row.file_exists %}
+                                <a href="{{ media_url }}{{ row.relative_path }}" target="_blank" rel="noopener noreferrer" class="block shrink-0">
+                                    <img src="{{ media_url }}{{ row.relative_path }}" alt="" class="w-14 h-14 object-cover rounded border border-slate-200 bg-slate-100" loading="lazy" width="56" height="56" decoding="async">
+                                </a>
+                                {% else %}
+                                <span class="inline-flex w-14 h-14 items-center justify-center rounded border border-dashed border-slate-200 text-[10px] text-slate-400 text-center leading-tight px-1">{% trans "Missing" %}</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 font-mono text-xs break-all max-w-xs align-middle">{{ row.relative_path }}</td>
+                            <td class="px-4 py-3 text-slate-800 align-middle">
+                                {% if row.edit_url %}
+                                <a href="{{ row.edit_url }}" class="text-[var(--brand)] hover:underline">{{ row.label }}</a>
+                                {% else %}
+                                {{ row.label }}
+                                {% endif %}
+                                {% if row.created_on_catalog %}
+                                <div class="text-xs text-slate-500 mt-0.5">{% trans "Product created" %}: {{ row.created_on_catalog|date:"SHORT_DATETIME_FORMAT" }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-slate-600 align-middle">{{ row.kind }}</td>
+                            <td class="px-4 py-3 text-slate-600 align-middle">{{ row.size|nc_filesize }}</td>
+                            <td class="px-4 py-3 text-slate-600 align-middle">{% if row.mtime %}{{ row.mtime|date:"SHORT_DATETIME_FORMAT" }}{% else %}—{% endif %}</td>
+                            <td class="px-4 py-3 text-right align-middle">
+                                <button type="button" class="catalog-img-delete-one text-red-600 hover:underline text-sm bg-transparent border-0 cursor-pointer p-0" data-path="{{ row.relative_path }}">
+                                    {% trans "Delete file" %}
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">{% trans "No image files found." %}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% blocktrans trimmed asvar catalog_img_js_confirm_bulk %}Delete the selected file(s) from disk and clear catalog references? This cannot be undone.{% endblocktrans %}
+{% blocktrans trimmed asvar catalog_img_js_confirm_one %}Delete this file from disk and clear catalog references? This cannot be undone.{% endblocktrans %}
+{% blocktrans trimmed asvar catalog_img_js_need_one %}Select at least one image.{% endblocktrans %}
+<script>
+(function () {
+    var confirmMsg = "{{ catalog_img_js_confirm_bulk|escapejs }}";
+    var confirmOne = "{{ catalog_img_js_confirm_one|escapejs }}";
+    var needOne = "{{ catalog_img_js_need_one|escapejs }}";
+
+    var form = document.getElementById('catalog-image-bulk-form');
+    if (!form) return;
+    var boxes = function () { return form.querySelectorAll('.catalog-img-row-check'); };
+    var btnBulk = document.getElementById('catalog-img-delete-selected');
+    var header = document.getElementById('catalog-img-header-check');
+
+    function syncBulkButton() {
+        var n = 0;
+        boxes().forEach(function (b) { if (b.checked) n++; });
+        if (btnBulk) btnBulk.disabled = n === 0;
+        if (header) {
+            var all = boxes().length > 0;
+            var c = 0;
+            boxes().forEach(function (b) { if (b.checked) c++; });
+            header.checked = all && c === boxes().length;
+            header.indeterminate = c > 0 && c < boxes().length;
+        }
+    }
+
+    boxes().forEach(function (b) { b.addEventListener('change', syncBulkButton); });
+    if (header) {
+        header.addEventListener('change', function () {
+            var on = header.checked;
+            boxes().forEach(function (b) { b.checked = on; });
+            syncBulkButton();
+        });
+    }
+    var selAll = document.getElementById('catalog-img-select-all');
+    var selNone = document.getElementById('catalog-img-select-none');
+    var selUnused = document.getElementById('catalog-img-select-unused');
+    if (selAll) selAll.addEventListener('click', function () {
+        boxes().forEach(function (b) { b.checked = true; });
+        if (header) { header.checked = true; header.indeterminate = false; }
+        syncBulkButton();
+    });
+    if (selNone) selNone.addEventListener('click', function () {
+        boxes().forEach(function (b) { b.checked = false; });
+        if (header) { header.checked = false; header.indeterminate = false; }
+        syncBulkButton();
+    });
+    if (selUnused) selUnused.addEventListener('click', function () {
+        boxes().forEach(function (b) { b.checked = b.getAttribute('data-unused') === '1'; });
+        syncBulkButton();
+    });
+
+    form.addEventListener('submit', function (e) {
+        var n = 0;
+        boxes().forEach(function (b) { if (b.checked) n++; });
+        if (n === 0) {
+            e.preventDefault();
+            alert(needOne);
+            return false;
+        }
+        if (!window.confirm(confirmMsg)) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    form.querySelectorAll('.catalog-img-delete-one').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var path = btn.getAttribute('data-path');
+            if (!path) return;
+            if (!window.confirm(confirmOne)) return;
+            boxes().forEach(function (b) { b.checked = (b.value === path); });
+            var any = false;
+            boxes().forEach(function (b) { if (b.checked) any = true; });
+            if (!any) return;
+            form.submit();
+        });
+    });
+
+    syncBulkButton();
+})();
+</script>
+{% endblock %}

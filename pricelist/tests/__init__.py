@@ -1,0 +1,1 @@
+# NovaQuote tests package

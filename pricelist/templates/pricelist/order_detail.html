@@ -1,0 +1,184 @@
+{% extends "pricelist/base.html" %}
+{% load i18n %}
+{% load pricelist_filters %}
+{# Context: order, proposal, supplier_groups. Form field names use OrderLineItem.uuid: oli_<uuid>_ordered/expected/delivered. #}
+
+{% block title %}{% trans "Order" context "purchase_order" %}: {{ order.reference|default:order.uuid }} – {{ general_settings.site_name|default:"NovaQuote" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-[var(--brand)]">
+                {% trans "Order" context "purchase_order" %}: {{ order.reference|default:order.proposal.reference|default:_("(No reference)") }}
+            </h1>
+            <p class="mt-1 text-slate-600">
+                {% trans "From calculation" %}: <a href="{% url 'pricelist:proposal_detail' identifier=order.proposal.uuid %}" class="text-[var(--brand)] hover:underline">{{ order.proposal.reference|default:order.proposal.uuid }}</a>
+                {% if order.invoice %}
+                · {% trans "Invoice" %}: <a href="{% url 'pricelist:invoice_detail' pk=order.invoice.uuid %}" class="text-[var(--brand)] hover:underline">{{ order.invoice.invoice_number|default:order.invoice.uuid }}</a>
+                {% endif %}
+                · {% trans "Created" %} {{ order.created_at|date:"d-m-Y H:i" }}
+            </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{% url 'pricelist:order_list' %}" class="text-sm font-medium text-slate-600 hover:text-[var(--brand)]">{% trans "Orders" %}</a>
+            <a href="{% url 'pricelist:proposal_detail' identifier=order.proposal.uuid %}" class="text-sm font-medium text-slate-600 hover:text-[var(--brand)]">{% trans "Saved calculation" %}</a>
+        </div>
+    </div>
+
+    <form method="post" action="{% url 'pricelist:order_detail_uuid' pk=order.uuid %}">
+        {% csrf_token %}
+        {% if order_client_crm_picker %}
+        {{ order_client_crm_picker|json_script:"order-contact-picker-data" }}
+        <div
+            id="order-crm-initial"
+            class="hidden"
+            data-dept-uuid="{% if order.proposal.client_crm_department_id %}{{ order.proposal.client_crm_department.uuid }}{% endif %}"
+            data-contact-uuid="{% if order.proposal.client_crm_contact_id %}{{ order.proposal.client_crm_contact.uuid }}{% endif %}"
+        ></div>
+        <div class="rounded-lg border border-slate-200 bg-slate-50/80 p-3 space-y-2 w-full mb-8">
+            <p class="text-xs font-semibold text-slate-700">{% trans "Client (Contacts)" %}</p>
+            <p class="text-xs text-slate-500">{% trans "Department and contact are saved on the linked calculation. If the company was a lead, it is promoted to a client in Contacts when the invoice is marked as sent." %}</p>
+            <p class="text-sm text-slate-800">
+                <span class="font-medium text-slate-600">{% trans "Company" %}:</span>
+                <a href="{% url 'pricelist:contacts_organization_detail' org_uuid=order.proposal.client_crm_organization.uuid %}?from=clients" class="text-[var(--brand)] hover:underline">{{ order_client_crm_picker.name }}</a>
+                <span class="text-slate-500 text-xs ml-1">(<a href="{% url 'pricelist:proposal_detail' identifier=order.proposal.uuid %}" class="text-[var(--brand)] hover:underline">{% trans "change company on calculation" %}</a>)</span>
+            </p>
+            <div class="grid gap-2 sm:grid-cols-2">
+                <div>
+                    <label for="order-client-dept" class="block text-xs font-medium text-slate-600 mb-1">{% trans "Department" %}</label>
+                    <select name="order_client_crm_department" id="order-client-dept" class="w-full text-sm rounded-md border border-slate-300 px-2 py-1.5 focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)]">
+                        <option value="">{% trans "— Select —" %}</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="order-client-contact" class="block text-xs font-medium text-slate-600 mb-1">{% trans "Contact person" %}</label>
+                    <select name="order_client_crm_contact" id="order-client-contact" class="w-full text-sm rounded-md border border-slate-300 px-2 py-1.5 focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)]">
+                        <option value="">{% trans "— Select —" %}</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-3 text-sm text-slate-600 mb-8">
+            {% trans "To set department and contact here, link a client or lead company on the saved calculation first. Sending the invoice promotes a lead to a client in Contacts." %}
+            <a href="{% url 'pricelist:proposal_detail' identifier=order.proposal.uuid %}" class="text-[var(--brand)] hover:underline font-medium">{% trans "Open calculation" %}</a>
+        </div>
+        {% endif %}
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-8 p-4">
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label for="order_status" class="block text-sm font-medium text-slate-700 mb-1">{% trans "Status" %}</label>
+                    <select name="order_status" id="order_status" class="w-full text-sm rounded border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)]">
+                        {% for value, label in order_status_choices %}
+                        <option value="{{ value }}" {% if order.status == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="sm:col-span-2">
+                    <label for="order_note" class="block text-sm font-medium text-slate-700 mb-1">{% trans "Order note" %}</label>
+                    <textarea name="order_note" id="order_note" rows="3" class="w-full text-sm rounded border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)]" placeholder="{% trans 'Optional note for this order.' %}">{{ order.note }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        {% for group in supplier_groups %}
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+            <h2 class="px-4 py-3 bg-slate-50 border-b border-slate-200 font-semibold text-slate-900">
+                {{ group.supplier_name }}
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50/70 border-b border-slate-200">
+                        <tr>
+                            <th scope="col" class="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Product / description" %}</th>
+                            <th scope="col" class="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right w-24">{% trans "Quantity" %}</th>
+                            <th scope="col" class="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide w-40">{% trans "Ordered at" %}</th>
+                            <th scope="col" class="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide w-36">{% trans "Expected delivery" %}</th>
+                            <th scope="col" class="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide w-40">{% trans "Delivered at" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in group.rows %}
+                        <tr class="border-b border-slate-100 hover:bg-slate-50/50">
+                            <td class="px-4 py-3 font-medium text-slate-900">{{ row.label }}</td>
+                            <td class="px-4 py-3 text-right text-slate-700">{{ row.quantity }}</td>
+                            <td class="px-4 py-2">
+                                <input type="datetime-local" name="oli_{{ row.order_line_item.uuid }}_ordered" value="{% if row.order_line_item.ordered_at %}{{ row.order_line_item.ordered_at|date:'Y-m-d' }}T{{ row.order_line_item.ordered_at|time:'H:i' }}{% endif %}" class="w-full text-sm rounded border border-slate-300 px-2 py-1.5 focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)]">
+                            </td>
+                            <td class="px-4 py-2">
+                                <input type="date" name="oli_{{ row.order_line_item.uuid }}_expected" value="{% if row.order_line_item.expected_delivery %}{{ row.order_line_item.expected_delivery|date:'Y-m-d' }}{% endif %}" class="w-full text-sm rounded border border-slate-300 px-2 py-1.5 focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)]">
+                            </td>
+                            <td class="px-4 py-2">
+                                <input type="datetime-local" name="oli_{{ row.order_line_item.uuid }}_delivered" value="{% if row.order_line_item.delivered_at %}{{ row.order_line_item.delivered_at|date:'Y-m-d' }}T{{ row.order_line_item.delivered_at|time:'H:i' }}{% endif %}" class="w-full text-sm rounded border border-slate-300 px-2 py-1.5 focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)]">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-slate-500 py-4">{% trans "No lines in this order." %}</p>
+        {% endfor %}
+
+        <div class="flex justify-end">
+            <button type="submit" class="rounded-md bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:ring-offset-2">{% trans "Save" %}</button>
+        </div>
+    </form>
+</div>
+{% if order_client_crm_picker %}
+<script>
+(function() {
+    var dataEl = document.getElementById('order-contact-picker-data');
+    var deptSel = document.getElementById('order-client-dept');
+    var contactSel = document.getElementById('order-client-contact');
+    var initialEl = document.getElementById('order-crm-initial');
+    if (!dataEl || !deptSel || !contactSel) return;
+    var ORG = null;
+    try { ORG = JSON.parse(dataEl.textContent); } catch (e) { return; }
+    if (!ORG || !ORG.uuid) return;
+    function refillDepartments(preselectDept) {
+        deptSel.innerHTML = '';
+        var o0 = document.createElement('option');
+        o0.value = '';
+        o0.textContent = '\u2014';
+        deptSel.appendChild(o0);
+        contactSel.innerHTML = '';
+        var c0 = document.createElement('option');
+        c0.value = '';
+        c0.textContent = '\u2014';
+        contactSel.appendChild(c0);
+        (ORG.departments || []).forEach(function(d) {
+            var o = document.createElement('option');
+            o.value = d.uuid;
+            o.textContent = d.name;
+            if (preselectDept && preselectDept === d.uuid) o.selected = true;
+            deptSel.appendChild(o);
+        });
+    }
+    function refillContacts(deptUuid, preselectContact) {
+        while (contactSel.options.length > 1) contactSel.remove(1);
+        (ORG.memberships || []).forEach(function(m) {
+            if (deptUuid) {
+                if (m.department_uuid && m.department_uuid !== deptUuid) return;
+            }
+            var o = document.createElement('option');
+            o.value = m.uuid;
+            o.textContent = m.label;
+            if (preselectContact && preselectContact === m.uuid) o.selected = true;
+            contactSel.appendChild(o);
+        });
+    }
+    deptSel.addEventListener('change', function() {
+        refillContacts(deptSel.value, '');
+    });
+    var iDept = initialEl ? (initialEl.getAttribute('data-dept-uuid') || '') : '';
+    var iContact = initialEl ? (initialEl.getAttribute('data-contact-uuid') || '') : '';
+    refillDepartments(iDept);
+    refillContacts(deptSel.value, iContact);
+})();
+</script>
+{% endif %}
+{% endblock %}

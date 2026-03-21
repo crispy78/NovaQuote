@@ -1,0 +1,256 @@
+{% extends "pricelist/base.html" %}
+{% load i18n %}
+{% load static %}
+{% load pricelist_filters %}
+
+{% block title %}{{ product.brand }} {% if product.model_type %}{{ product.model_type }}{% endif %} – {{ general_settings.site_name|default:"NovaQuote" }}{% endblock %}
+
+{% block content %}
+<div class="bg-slate-100 min-h-full">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex items-center justify-between gap-4 mb-6">
+            <h1 class="text-2xl font-bold tracking-tight text-brand">{{ product.brand }}{% if product.model_type %} {{ product.model_type }}{% endif %}</h1>
+            <a href="{% url 'pricelist:price_list_products' %}" class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold border border-brand text-brand hover:bg-brand hover:text-white transition">{% trans "Back to price list" %}</a>
+        </div>
+
+    <div class="space-y-8">
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="md:flex">
+                {% if product.image %}
+                    <a href="{% url 'pricelist:product_detail' product.article_number %}" class="block md:w-1/3 border-b md:border-b-0 md:border-r border-slate-100 flex items-center justify-center bg-slate-50">
+                        <img
+                            src="{{ product.image.url }}"
+                            alt="{{ product.brand }} {{ product.model_type }}"
+                            class="max-h-60 w-auto object-contain my-6"
+                        >
+                    </a>
+                {% endif %}
+                <div class="flex-1 p-6 space-y-4">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-900">
+                            {{ product.brand }}{% if product.model_type %} {{ product.model_type }}{% endif %}
+                        </h2>
+                        {% if settings.show_category_on_frontend and product.category or settings.show_supplier_on_frontend and product.supplier %}
+                        <p class="text-xs uppercase tracking-wide text-slate-500 mt-1">
+                            {% if settings.show_category_on_frontend and product.category %}
+                                <span class="font-semibold text-brand">{{ product.category.name }}</span>
+                                {% if settings.show_supplier_on_frontend and product.supplier %} · {% endif %}
+                            {% endif %}
+                            {% if settings.show_supplier_on_frontend and product.supplier %}
+                                {% trans "Supplier:" %} <span class="font-medium text-slate-700">{{ product.supplier.name }}</span>
+                            {% endif %}
+                        </p>
+                        {% endif %}
+                        {% if product.supplier_order_number %}
+                            <p class="text-xs text-slate-500 mt-1">
+                                {% trans "Supplier order number:" %}
+                                <span class="font-mono text-slate-700">{{ product.supplier_order_number }}</span>
+                            </p>
+                        {% endif %}
+                        {% if product.product_suppliers.all|length > 1 %}
+                        <div class="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
+                            <p class="font-semibold text-slate-700 mb-2">{% trans "Purchasable from multiple suppliers" %}</p>
+                            <ul class="space-y-1.5 text-slate-600 list-disc list-inside">
+                                {% for ps in product.product_suppliers.all %}
+                                <li>
+                                    <span class="font-medium text-slate-800">{{ ps.supplier.name }}</span>
+                                    {% if ps.is_preferred %}<span class="text-emerald-700"> — {% trans "preferred (price list default)" %}</span>{% endif %}
+                                    {% if ps.lead_time_days %} · {% trans "lead" %} {{ ps.lead_time_days }} {% trans "days" %}{% endif %}
+                                    {% if ps.payment_terms %} · {{ ps.payment_terms }}{% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        {% if product.supplier_crm_organization or product.supplier_crm_department or product.supplier_crm_contact %}
+                        <div class="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-600 space-y-1">
+                            <p class="font-semibold uppercase tracking-wide text-brand">{% trans "Supplier contact (CRM)" %}</p>
+                            {% if product.supplier_crm_organization %}
+                            <p>{% trans "Company" %}: <a href="{% url 'pricelist:contacts_organization_detail' org_uuid=product.supplier_crm_organization.uuid %}?from=suppliers" class="text-brand hover:underline font-medium text-slate-800">{{ product.supplier_crm_organization.name }}</a></p>
+                            {% endif %}
+                            {% if product.supplier_crm_department %}
+                            <p>{% trans "Department" %}: {{ product.supplier_crm_department.name }}</p>
+                            {% endif %}
+                            {% if product.supplier_crm_contact %}
+                            <p>{% trans "Contact" %}: <a href="{% url 'pricelist:contacts_person_detail' person_uuid=product.supplier_crm_contact.person.uuid %}" class="text-brand hover:underline font-medium text-slate-800">{{ product.supplier_crm_contact.person.first_name }} {{ product.supplier_crm_contact.person.last_name }}</a>{% if product.supplier_crm_contact.job_title %} <span class="text-slate-500">({{ product.supplier_crm_contact.job_title }})</span>{% endif %}</p>
+                            {% if product.supplier_crm_contact.company_email %}
+                            <p>{% trans "Email" %}: {{ product.supplier_crm_contact.company_email|contact_mailto }}</p>
+                            {% endif %}
+                            {% if product.supplier_crm_contact.company_phone %}
+                            <p>{% trans "Phone" %}: {{ product.supplier_crm_contact.company_phone|contact_tel }}</p>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        <p class="text-xs text-slate-500 mt-1">
+                            {% trans "Article number:" %}
+                            <span class="font-mono text-slate-700">{{ product.article_number }}</span>
+                        </p>
+                    </div>
+
+                    {% if product.description or product.usps %}
+                        <div class="space-y-4 text-sm text-slate-700">
+                            {% if product.description %}
+                                <div>
+                                    <h3 class="text-xs font-semibold uppercase tracking-wide text-brand mb-1">
+                                        {% trans "Sales pitch" %}
+                                    </h3>
+                                    <p>{{ product.description }}</p>
+                                </div>
+                            {% endif %}
+                            {% if product.usps %}
+                                <div>
+                                    <h3 class="text-xs font-semibold uppercase tracking-wide text-brand mb-1">
+                                        {% trans "USPs" %}
+                                    </h3>
+                                    <ul class="space-y-1">
+                                        {% for usp in product.usps.splitlines %}
+                                            {% if usp %}
+                                                <li class="flex items-start gap-2">
+                                                    <span class="mt-1 h-1.5 w-1.5 rounded-full bg-brand flex-shrink-0"></span>
+                                                    <span>{{ usp }}</span>
+                                                </li>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    <div class="pt-4 border-t border-slate-100 space-y-2">
+                        <div class="flex items-baseline justify-between">
+                            <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                                {% trans "Sales price" %}
+                            </span>
+                            <span class="text-xl font-semibold text-brand">
+                                {{ product.calculated_sales_price|format_price:settings }}
+                            </span>
+                        </div>
+                        {% if product.option_lines.all %}
+                            <div class="mt-4 pt-4 border-t border-slate-100">
+                                <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
+                                    {% trans "Options" %}
+                                </p>
+                                <ul class="space-y-2 text-sm w-full">
+                                    {% for line in product.option_lines.all %}
+                                        <li class="flex justify-between items-baseline gap-4 w-full">
+                                            {% if line.option_product.show_in_price_list %}
+                                                <a href="{% url 'pricelist:product_detail' line.option_product.article_number %}" target="_blank" class="text-slate-700 hover:text-brand text-left">
+                                                    {% if line.short_description %}{{ line.short_description }}{% else %}{{ line.option_product.brand }}{% if line.option_product.model_type %} {{ line.option_product.model_type }}{% endif %}{% endif %}
+                                                </a>
+                                            {% else %}
+                                                <span class="text-slate-700 text-left">{% if line.short_description %}{{ line.short_description }}{% else %}{{ line.option_product.brand }}{% if line.option_product.model_type %} {{ line.option_product.model_type }}{% endif %}{% endif %}</span>
+                                            {% endif %}
+                                            <span class="text-brand font-semibold whitespace-nowrap text-right">
+                                                {{ line.option_product.calculated_sales_price|format_price:settings }}
+                                            </span>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                        {% if product.price_last_checked %}
+                            <p class="text-xs text-slate-500">
+                                {% trans "Price last checked:" %}
+                                <span class="font-medium text-slate-700">
+                                    {{ product.price_last_checked|date:"j-n-Y" }}
+                                </span>
+                            </p>
+                        {% endif %}
+                        {% if product.price_last_changed %}
+                            <p class="text-xs text-slate-500">
+                                {% trans "Price last changed:" %}
+                                <span class="font-medium text-slate-700">
+                                    {{ product.price_last_changed|date:"j-n-Y" }}
+                                </span>
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {% if show_price_history_chart and price_history_data %}
+            <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h2 class="text-sm font-semibold text-slate-800 mb-3">
+                    {% if show_price_history_cost and show_price_history_sales %}{% trans "Price history (cost and sales)" %}{% elif show_price_history_cost %}{% trans "Price history (cost price)" %}{% else %}{% trans "Price history (sales price)" %}{% endif %}
+                </h2>
+                <div class="h-64">
+                    <canvas id="price-history-chart" width="400" height="256"></canvas>
+                </div>
+                {{ price_history_data|json_script:"price-history-data" }}
+                <script>
+                    window.PRICE_HISTORY_SHOW_COST = {{ show_price_history_cost|yesno:"true,false" }};
+                    window.PRICE_HISTORY_SHOW_SALES = {{ show_price_history_sales|yesno:"true,false" }};
+                    window.PRICE_HISTORY_LABEL_COST = "{% trans 'Cost price' %}";
+                    window.PRICE_HISTORY_LABEL_SALES = "{% trans 'Sales price' %}";
+                </script>
+                <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+                <script>
+                    (function() {
+                        var el = document.getElementById("price-history-data");
+                        if (!el || !el.textContent) return;
+                        var data = JSON.parse(el.textContent);
+                        if (!data.length) return;
+                        var showCost = window.PRICE_HISTORY_SHOW_COST;
+                        var showSales = window.PRICE_HISTORY_SHOW_SALES;
+                        var labels = data.map(function(d) { return d.date; });
+                        var datasets = [];
+                        if (showCost) {
+                            datasets.push({
+                                label: window.PRICE_HISTORY_LABEL_COST || "Cost price",
+                                data: data.map(function(d) { return d.cost != null ? d.cost : null; }),
+                                borderColor: "{{ general_settings.effective_primary_color }}",
+                                backgroundColor: "{{ general_settings.effective_primary_rgba_faint }}",
+                                fill: true,
+                                tension: 0.2
+                            });
+                        }
+                        if (showSales) {
+                            datasets.push({
+                                label: window.PRICE_HISTORY_LABEL_SALES || "Sales price",
+                                data: data.map(function(d) { return d.sales != null ? d.sales : null; }),
+                                borderColor: "#0ea5e9",
+                                backgroundColor: "rgba(14, 165, 233, 0.1)",
+                                fill: true,
+                                tension: 0.2
+                            });
+                        }
+                        if (!datasets.length) return;
+                        new Chart(document.getElementById("price-history-chart"), {
+                            type: "line",
+                            data: { labels: labels, datasets: datasets },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: datasets.length > 1 } },
+                                scales: {
+                                    y: { beginAtZero: true }
+                                }
+                            }
+                        });
+                    })();
+                </script>
+            </section>
+        {% endif %}
+
+        {% if combinations %}
+            <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h2 class="text-sm font-semibold text-slate-800 mb-3">
+                    {% trans "This product appears in the following packages / combinations" %}
+                </h2>
+                <ul class="text-sm text-slate-700 space-y-1">
+                    {% for combination in combinations %}
+                        <li>
+                            {{ combination.name }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+

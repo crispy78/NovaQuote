@@ -1,0 +1,304 @@
+{% extends "pricelist/base.html" %}
+{% load i18n %}
+{% load pricelist_filters %}
+{# Context: proposal, lines (with type, name, unit_price, quantity, line_total, is_removed, combination_items for package contents), grand_total, settings, contract options. #}
+
+{% block title %}{% trans "Saved calculation" %}: {{ proposal.reference|default:proposal.pk }} – {{ general_settings.site_name|default:"NovaQuote" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-[var(--brand)]">
+                {% trans "Saved calculation" %}: {{ proposal.reference|default:_("(No reference)") }}
+            </h1>
+            <p class="mt-1 text-slate-600">
+                {% trans "Saved on" %} {{ proposal.created_at|date:"d-m-Y H:i" }}{% if proposal.updated_at != proposal.created_at %} · {% trans "Last updated" %} {{ proposal.updated_at|date:"d-m-Y H:i" }}{% endif %}
+            </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+            <p class="w-full text-xs text-slate-500 sm:w-auto sm:mr-2">{% trans "Flow: saved calculation → invoice (send) → order." %}</p>
+            {% if invoice %}
+            <a href="{% url 'pricelist:invoice_detail' pk=invoice.uuid %}" class="rounded-md border border-[var(--brand)] bg-white px-4 py-2 text-sm font-medium text-[var(--brand)] hover:bg-[var(--brand)]/5">{% trans "View invoice" %}</a>
+            {% else %}
+            <a href="{% url 'pricelist:invoice_create' identifier=proposal.uuid %}" class="rounded-md border border-[var(--brand)] bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:opacity-90">{% trans "Create invoice" %}</a>
+            {% endif %}
+            {% if has_order %}
+            <a href="{% url 'pricelist:order_detail_uuid' pk=proposal.order.uuid %}" class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50">{% trans "View order" %}</a>
+            {% elif can_create_order_from_proposal %}
+            <a href="{% url 'pricelist:order_create' identifier=proposal.uuid %}" class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50">{% trans "Create order" %}</a>
+            {% elif invoice and not has_order %}
+            <span class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 max-w-md">{% trans "Open the invoice and mark it as sent before you can create an order." %}</span>
+            {% endif %}
+            <a href="{% url 'pricelist:proposal' %}?load={{ proposal.uuid }}" class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">{% trans "Edit" %}</a>
+            <form method="post" action="{% url 'pricelist:proposal_update_rates' identifier=proposal.uuid %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="rounded-md bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">{% trans "Update to current rates" %}</button>
+            </form>
+            <a href="{% url 'pricelist:proposal_history' identifier=proposal.uuid %}" class="text-sm font-medium text-slate-600 hover:text-[var(--brand)]">{% trans "History" %}</a>
+            <a href="{% url 'pricelist:proposal_list' %}" class="text-sm font-medium text-slate-600 hover:text-[var(--brand)]">{% trans "Saved calculations" %}</a>
+        </div>
+    </div>
+
+    {% if proposal.client_crm_organization or proposal.client_crm_department or proposal.client_crm_contact %}
+    <div class="mb-6 bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+        <h2 class="text-sm font-semibold text-slate-900 mb-2">{% trans "Client / lead (Contacts)" %}</h2>
+        <dl class="grid gap-2 text-sm sm:grid-cols-3">
+            {% if proposal.client_crm_organization %}
+            <div>
+                <dt class="text-slate-500">{% trans "Company" %}</dt>
+                <dd class="text-slate-900">
+                    <a href="{% url 'pricelist:contacts_organization_detail' org_uuid=proposal.client_crm_organization.uuid %}?from=clients" class="text-[var(--brand)] hover:underline">{{ proposal.client_crm_organization.name }}</a>
+                </dd>
+            </div>
+            {% endif %}
+            {% if proposal.client_crm_department %}
+            <div>
+                <dt class="text-slate-500">{% trans "Department" %}</dt>
+                <dd class="text-slate-900">{{ proposal.client_crm_department.name }}</dd>
+            </div>
+            {% endif %}
+            {% if proposal.client_crm_contact %}
+            <div>
+                <dt class="text-slate-500">{% trans "Contact" %}</dt>
+                <dd class="text-slate-900">
+                    <a href="{% url 'pricelist:contacts_person_detail' person_uuid=proposal.client_crm_contact.person.uuid %}" class="text-[var(--brand)] hover:underline">{{ proposal.client_crm_contact.person.first_name }} {{ proposal.client_crm_contact.person.last_name }}</a>
+                    {% if proposal.client_crm_contact.job_title %}<span class="text-slate-600"> — {{ proposal.client_crm_contact.job_title }}</span>{% endif %}
+                </dd>
+            </div>
+            {% endif %}
+        </dl>
+    </div>
+    {% endif %}
+
+    <div id="proposal-cart" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
+         data-currency="{{ settings.currency|default:'EUR' }}"
+         data-decimal-sep="{{ proposal_decimal_sep|default:',' }}"
+         data-thousands-sep="{{ proposal_thousands_sep|default:'.' }}"
+         data-total-value="{{ total_value }}"
+         data-total-products="{{ total_products }}">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th scope="col" class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Product / Package" %}</th>
+                        <th scope="col" class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide w-40">{% trans "Supplier" %}</th>
+                        <th scope="col" class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right w-28">{% trans "Unit price" %}</th>
+                        <th scope="col" class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right w-32">{% trans "Quantity" %}</th>
+                        <th scope="col" class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right w-36">{% trans "Total" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for line in proposal_lines %}
+                    <tr class="border-b border-slate-100 {% if line.is_removed %}bg-amber-50/50{% endif %}">
+                        <td class="px-4 py-3">
+                            <span class="font-medium {% if line.is_removed %}line-through text-slate-500{% else %}text-slate-900{% endif %}">{{ line.name }}</span>
+                            {% if line.is_removed %}<span class="ml-2 text-xs text-amber-700">{% trans "No longer in catalog" %}</span>{% endif %}
+                            {% if line.type == "combination" and not line.is_removed %}<span class="ml-2 text-xs text-emerald-600">{% trans "Package" %}</span>{% endif %}
+                            {% if line.combination_items %}
+                            <ul class="mt-1.5 text-sm text-slate-600 list-disc list-inside space-y-0.5">
+                                {% for item in line.combination_items %}
+                                <li>{{ item.label }}{% if item.options %} ({% for opt in item.options %}{{ opt }}{% if not forloop.last %}, {% endif %}{% endfor %}){% endif %}</li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-slate-600">
+                            {% if line.supplier_name %}{{ line.supplier_name }}{% else %}—{% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-right text-slate-700">{{ line.unit_price|format_price:settings }}</td>
+                        <td class="px-4 py-3 text-right text-slate-700">{{ line.quantity }}</td>
+                        <td class="px-4 py-3 text-right font-semibold text-[var(--brand)]">{{ line.line_total|format_price:settings }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-slate-500">{% trans "No lines in this calculation." %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="border-t border-slate-200 bg-slate-50 px-4 py-4 flex justify-end items-center gap-4">
+            <span class="text-sm font-medium text-slate-600">{% trans "Grand total" %}</span>
+            <span id="proposal-grand-total" class="text-xl font-bold text-[var(--brand)]">{{ grand_total|format_price:settings }}</span>
+        </div>
+    </div>
+
+    {% if contract_options_snapshot or contract_options_added %}
+    <div class="mt-10">
+        <h2 class="text-lg font-semibold text-slate-800 mb-4">{% trans "Maintenance contract options" %}</h2>
+        <p class="text-sm text-slate-600 mb-4">{% trans "Based on the hardware in this saved calculation. Contract options and percentages as at save date." %}</p>
+        <div id="proposal-contract-options" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+             data-currency="{{ settings.currency|default:'EUR' }}"
+             data-decimal-sep="{{ proposal_decimal_sep|default:',' }}"
+             data-thousands-sep="{{ proposal_thousands_sep|default:'.' }}">
+            {% for d in contract_options_snapshot %}
+            <div class="contract-option-card bg-white rounded-xl border border-slate-200 p-5 shadow-sm {% if d.is_removed %}border-amber-300 bg-amber-50/30{% endif %}"
+                 data-duration-months="{{ d.duration_months }}"
+                 data-hardware-fee-pct="{{ d.hardware_fee_percentage }}"
+                 data-visits-per-contract="{{ d.visits_per_contract }}"
+                 data-name="{{ d.name|escape }}">
+                <h3 class="font-semibold text-slate-900 flex items-center gap-2 flex-wrap">
+                    {{ d.name }}
+                    {% if d.is_removed %}<span class="text-xs font-medium px-2 py-0.5 rounded bg-amber-200 text-amber-900">{% trans "Contract form removed" %}</span>{% endif %}
+                    {% if d.is_modified %}<span class="text-xs font-medium px-2 py-0.5 rounded bg-sky-200 text-sky-900">{% trans "Contract terms changed since save" %}</span>{% endif %}
+                </h3>
+                <dl class="mt-3 space-y-1 text-sm">
+                    <div class="flex justify-between gap-2">
+                        <dt class="text-slate-500">{% trans "Total contract" %}</dt>
+                        <dd class="contract-option-total font-semibold text-[var(--brand)]">—</dd>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <dt class="text-slate-500">{% trans "Per month" %}</dt>
+                        <dd class="contract-option-monthly font-semibold text-slate-800">—</dd>
+                    </div>
+                </dl>
+                {% if show_contract_fee_calculation %}
+                <div class="contract-calculation-breakdown mt-4 pt-4 border-t border-slate-200 space-y-3">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">{% trans "How we calculate this" %}</p>
+                    <div class="breakdown-block rounded-lg bg-slate-50 p-3">
+                        <p class="text-xs font-medium text-slate-600 mb-1.5">{% trans "Contract period" %}</p>
+                        <p class="text-sm"><span class="breakdown-duration-months font-semibold text-slate-800 tabular-nums">—</span> {% trans "months" %} · <span class="breakdown-years font-semibold text-slate-800 tabular-nums">—</span> {% trans "years" %}</p>
+                    </div>
+                    <div class="breakdown-block rounded-lg bg-slate-50 p-3">
+                        <p class="text-xs font-medium text-slate-600 mb-1">{% trans "Hardware fee" %}</p>
+                        <p class="text-sm font-semibold text-[var(--brand)] breakdown-hardware-fee tabular-nums">—</p>
+                        <p class="text-xs text-slate-500 mt-0.5 breakdown-formula-hardware">—</p>
+                    </div>
+                    <div class="breakdown-block rounded-lg bg-slate-50 p-3">
+                        <p class="text-xs font-medium text-slate-600 mb-1">{% trans "Visit time" %}</p>
+                        <p class="text-sm font-semibold text-slate-800 breakdown-actual-time-result tabular-nums">—</p>
+                        <p class="text-xs text-slate-500 mt-0.5 breakdown-formula-actual-time">—</p>
+                    </div>
+                    <div class="breakdown-block rounded-lg bg-slate-50 p-3">
+                        <p class="text-xs font-medium text-slate-600 mb-1">{% trans "Labour costs" %}</p>
+                        <p class="text-sm font-semibold text-[var(--brand)] breakdown-cost-per-visit tabular-nums">—</p>
+                        <p class="text-xs text-slate-500 mt-0.5 breakdown-formula-cost-per-visit">—</p>
+                        <p class="text-sm font-semibold text-[var(--brand)] mt-2 breakdown-total-labour tabular-nums">—</p>
+                        <p class="text-xs text-slate-500 mt-0.5 breakdown-formula-total-labour">—</p>
+                    </div>
+                    <div class="breakdown-block rounded-lg bg-[var(--brand)]/5 border border-[var(--brand)]/20 p-3">
+                        <p class="text-xs font-medium text-slate-600 mb-1">{% trans "Total" %}</p>
+                        <p class="text-sm"><span class="text-slate-600">{% trans "Total contract" %}:</span> <span class="breakdown-formula-total-contract font-semibold text-[var(--brand)] tabular-nums">—</span></p>
+                        <p class="text-sm mt-1"><span class="text-slate-600">{% trans "Per month" %}:</span> <span class="breakdown-formula-monthly font-semibold text-[var(--brand)] tabular-nums">—</span></p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% for d in contract_options_added %}
+            <div class="contract-option-card bg-white rounded-xl border border-emerald-200 p-5 shadow-sm bg-emerald-50/20"
+                 data-duration-months="{{ d.duration_months }}"
+                 data-hardware-fee-pct="{{ d.hardware_fee_percentage }}"
+                 data-visits-per-contract="{{ d.visits_per_contract }}"
+                 data-name="{{ d.name|escape }}">
+                <h3 class="font-semibold text-slate-900 flex items-center gap-2 flex-wrap">
+                    {{ d.name }}
+                    <span class="text-xs font-medium px-2 py-0.5 rounded bg-emerald-200 text-emerald-900">{% trans "Contract form added later" %}</span>
+                </h3>
+                <dl class="mt-3 space-y-1 text-sm">
+                    <div class="flex justify-between gap-2">
+                        <dt class="text-slate-500">{% trans "Total contract" %}</dt>
+                        <dd class="contract-option-total font-semibold text-[var(--brand)]">—</dd>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <dt class="text-slate-500">{% trans "Per month" %}</dt>
+                        <dd class="contract-option-monthly font-semibold text-slate-800">—</dd>
+                    </div>
+                </dl>
+                {% if show_contract_fee_calculation %}
+                <div class="contract-calculation-breakdown mt-4 pt-4 border-t border-slate-200 space-y-3">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">{% trans "How we calculate this" %}</p>
+                    <div class="breakdown-block rounded-lg bg-slate-50 p-3">
+                        <p class="text-xs font-medium text-slate-600 mb-1.5">{% trans "Contract period" %}</p>
+                        <p class="text-sm"><span class="breakdown-duration-months font-semibold text-slate-800 tabular-nums">—</span> {% trans "months" %} · <span class="breakdown-years font-semibold text-slate-800 tabular-nums">—</span> {% trans "years" %}</p>
+                    </div>
+                    <div class="breakdown-block rounded-lg bg-slate-50 p-3">
+                        <p class="text-xs font-medium text-slate-600 mb-1">{% trans "Hardware fee" %}</p>
+                        <p class="text-sm font-semibold text-[var(--brand)] breakdown-hardware-fee tabular-nums">—</p>
+                        <p class="text-xs text-slate-500 mt-0.5 breakdown-formula-hardware">—</p>
+                    </div>
+                    <div class="breakdown-block rounded-lg bg-slate-50 p-3">
+                        <p class="text-xs font-medium text-slate-600 mb-1">{% trans "Visit time" %}</p>
+                        <p class="text-sm font-semibold text-slate-800 breakdown-actual-time-result tabular-nums">—</p>
+                        <p class="text-xs text-slate-500 mt-0.5 breakdown-formula-actual-time">—</p>
+                    </div>
+                    <div class="breakdown-block rounded-lg bg-slate-50 p-3">
+                        <p class="text-xs font-medium text-slate-600 mb-1">{% trans "Labour costs" %}</p>
+                        <p class="text-sm font-semibold text-[var(--brand)] breakdown-cost-per-visit tabular-nums">—</p>
+                        <p class="text-xs text-slate-500 mt-0.5 breakdown-formula-cost-per-visit">—</p>
+                        <p class="text-sm font-semibold text-[var(--brand)] mt-2 breakdown-total-labour tabular-nums">—</p>
+                        <p class="text-xs text-slate-500 mt-0.5 breakdown-formula-total-labour">—</p>
+                    </div>
+                    <div class="breakdown-block rounded-lg bg-[var(--brand)]/5 border border-[var(--brand)]/20 p-3">
+                        <p class="text-xs font-medium text-slate-600 mb-1">{% trans "Total" %}</p>
+                        <p class="text-sm"><span class="text-slate-600">{% trans "Total contract" %}:</span> <span class="breakdown-formula-total-contract font-semibold text-[var(--brand)] tabular-nums">—</span></p>
+                        <p class="text-sm mt-1"><span class="text-slate-600">{% trans "Per month" %}:</span> <span class="breakdown-formula-monthly font-semibold text-[var(--brand)] tabular-nums">—</span></p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{{ maintenance_settings|json_script:"maintenance-settings-data" }}
+{{ proposal_calc_i18n|json_script:"proposal-calc-i18n" }}
+
+<script>
+(function() {
+    var cart = document.getElementById('proposal-cart');
+    var container = document.getElementById('proposal-contract-options');
+    if (!cart || !container) return;
+    var totalValue = parseFloat(cart.getAttribute('data-total-value')) || 0;
+    var totalProducts = parseInt(cart.getAttribute('data-total-products'), 10) || 0;
+    var currency = cart.getAttribute('data-currency') || 'EUR';
+    var decimalSep = cart.getAttribute('data-decimal-sep') || ',';
+    var maintenanceSettingsEl = document.getElementById('maintenance-settings-data');
+    var calcI18nEl = document.getElementById('proposal-calc-i18n');
+    var calcI18n = calcI18nEl ? JSON.parse(calcI18nEl.textContent) : {};
+    var maintenanceSettings = maintenanceSettingsEl ? JSON.parse(maintenanceSettingsEl.textContent) : {};
+    var timePerProduct = Number(maintenanceSettings.time_per_product_minutes) || 15;
+    var minimumVisit = Number(maintenanceSettings.minimum_visit_minutes) || 60;
+    var hourlyRate = Number(maintenanceSettings.hourly_rate) || 75;
+    function fmt(n) { var x = Number(n); return isNaN(x) ? '0' : x.toFixed(2).replace('.', decimalSep); }
+    var cards = container.querySelectorAll('.contract-option-card');
+    cards.forEach(function(card) {
+        var durationMonths = parseInt(card.getAttribute('data-duration-months'), 10) || 0;
+        var feePct = parseFloat(card.getAttribute('data-hardware-fee-pct')) || 0;
+        var visitsPerContract = parseFloat(card.getAttribute('data-visits-per-contract')) || 6;
+        if (durationMonths <= 0) return;
+        var hardwareFee = totalValue * (feePct / 100);
+        var calculatedTime = totalProducts * timePerProduct;
+        var actualTime = calculatedTime < minimumVisit ? minimumVisit : calculatedTime;
+        var costPerVisit = (actualTime / 60) * hourlyRate;
+        var totalLabour = costPerVisit * visitsPerContract;
+        var totalContract = hardwareFee + totalLabour;
+        var monthly = durationMonths ? totalContract / durationMonths : 0;
+        var t = function(k) { return calcI18n[k] || k; };
+        var totalEl = card.querySelector('.contract-option-total');
+        var monthlyEl = card.querySelector('.contract-option-monthly');
+        if (totalEl) totalEl.textContent = currency + ' ' + fmt(totalContract);
+        if (monthlyEl) monthlyEl.textContent = currency + ' ' + fmt(monthly);
+        var breakdown = card.querySelector('.contract-calculation-breakdown');
+        if (breakdown) {
+            var dm = breakdown.querySelector('.breakdown-duration-months'); if (dm) dm.textContent = durationMonths;
+            var y = breakdown.querySelector('.breakdown-years'); if (y) y.textContent = (durationMonths / 12).toFixed(1);
+            var fH = breakdown.querySelector('.breakdown-formula-hardware'); if (fH) fH.textContent = feePct + '% ' + t('of_purchase_value') + ' (' + currency + ' ' + fmt(totalValue) + ')';
+            var hf = breakdown.querySelector('.breakdown-hardware-fee'); if (hf) hf.textContent = currency + ' ' + fmt(hardwareFee);
+            var atResult = breakdown.querySelector('.breakdown-actual-time-result'); if (atResult) atResult.textContent = actualTime.toFixed(1) + ' min ' + t('per_visit');
+            var fAt = breakdown.querySelector('.breakdown-formula-actual-time');
+            if (fAt) fAt.textContent = totalProducts + ' ' + t('product_s') + ' x ' + timePerProduct + ' min = ' + calculatedTime.toFixed(1) + ' min. ' + (actualTime <= calculatedTime ? t('above_minimum').replace(/\{min\}/g, minimumVisit) : t('below_minimum').replace(/\{min\}/g, minimumVisit));
+            var cpv = breakdown.querySelector('.breakdown-cost-per-visit'); if (cpv) cpv.textContent = currency + ' ' + fmt(costPerVisit) + ' ' + t('per_visit');
+            var fCpv = breakdown.querySelector('.breakdown-formula-cost-per-visit'); if (fCpv) fCpv.textContent = actualTime.toFixed(1) + ' min / 60 x ' + currency + ' ' + fmt(hourlyRate) + ' ' + t('hourly_rate');
+            var tl = breakdown.querySelector('.breakdown-total-labour'); if (tl) tl.textContent = currency + ' ' + fmt(totalLabour);
+            var fTl = breakdown.querySelector('.breakdown-formula-total-labour'); if (fTl) fTl.textContent = currency + ' ' + fmt(costPerVisit) + ' x ' + visitsPerContract + ' ' + t('visits_in_contract_period');
+            var fTc = breakdown.querySelector('.breakdown-formula-total-contract'); if (fTc) fTc.textContent = currency + ' ' + fmt(totalContract);
+            var fMo = breakdown.querySelector('.breakdown-formula-monthly'); if (fMo) fMo.textContent = currency + ' ' + fmt(monthly);
+        }
+    });
+})();
+</script>
+{% endblock %}

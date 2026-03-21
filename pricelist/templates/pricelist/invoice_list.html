@@ -1,0 +1,60 @@
+{% extends "pricelist/base.html" %}
+{% load i18n pricelist_filters %}
+
+{% block title %}{% trans "Invoices" %} – {{ general_settings.site_name|default:"NovaQuote" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-[var(--brand)]">{% trans "Invoices" %}</h1>
+        <p class="mt-1 text-slate-600 max-w-3xl">
+            {% trans "Invoices are created from saved calculations. Mark an invoice as sent before creating a purchase order — that records the amount owed to you before you order from suppliers." %}
+        </p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                    <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Invoice" %}</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Status" %}</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Calculation" %}</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right">{% trans "Amount" %}</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Created" %}</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right">{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in invoices %}
+                <tr class="border-b border-slate-100 hover:bg-slate-50/50">
+                    <td class="px-4 py-3 font-medium text-slate-900">
+                        <a href="{% url 'pricelist:invoice_detail' pk=inv.uuid %}" class="text-[var(--brand)] hover:underline">
+                            {{ inv.invoice_number|default:inv.uuid }}
+                        </a>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex px-2 py-0.5 rounded text-xs font-medium
+                            {% if inv.status == 'paid' %}bg-emerald-100 text-emerald-800
+                            {% elif inv.status == 'sent' %}bg-sky-100 text-sky-800
+                            {% elif inv.status == 'cancelled' %}bg-slate-100 text-slate-600
+                            {% else %}bg-amber-100 text-amber-800{% endif %}">{{ inv.get_status_display }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-slate-600">
+                        <a href="{% url 'pricelist:proposal_detail' identifier=inv.proposal.uuid %}" class="hover:text-[var(--brand)]">{{ inv.proposal.reference|default:inv.proposal.uuid }}</a>
+                    </td>
+                    <td class="px-4 py-3 text-right tabular-nums">{{ inv.grand_total_snapshot|format_price:settings }}</td>
+                    <td class="px-4 py-3 text-slate-600">{{ inv.created_at|date:"d-m-Y H:i" }}</td>
+                    <td class="px-4 py-3 text-right">
+                        <a href="{% url 'pricelist:invoice_detail' pk=inv.uuid %}" class="font-medium text-[var(--brand)] hover:underline">{% trans "Open" %}</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-4 py-10 text-center text-slate-500">{% trans "No invoices yet. Open a saved calculation and use “Create invoice”." %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

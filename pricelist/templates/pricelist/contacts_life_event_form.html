@@ -1,0 +1,28 @@
+{% extends "pricelist/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} – {{ person.first_name }} {{ person.last_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <p class="text-sm text-slate-500 mb-2">
+        <a href="{% url 'pricelist:contacts_person_detail' person_uuid=person.uuid %}" class="hover:text-brand">← {{ person.first_name }} {{ person.last_name }}</a>
+    </p>
+    <h1 class="text-2xl font-bold text-[var(--brand)] mb-6">{{ page_title }}</h1>
+
+    <form method="post" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+        {% csrf_token %}
+        {% for field in form %}
+        <div>
+            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ field.label }}</label>
+            {{ field.errors }}
+            {{ field }}
+        </div>
+        {% endfor %}
+        <div class="flex gap-3 pt-4">
+            <button type="submit" class="rounded-lg bg-[var(--brand)] px-5 py-2.5 text-sm font-medium text-white hover:opacity-90">{% trans "Save" %}</button>
+            <a href="{% url 'pricelist:contacts_person_detail' person_uuid=person.uuid %}" class="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">{% trans "Cancel" %}</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% load i18n %}
+<button class="sticky toggle-nav-sidebar" id="toggle-nav-sidebar" aria-label="{% translate 'Toggle navigation' %}"></button>
+<nav class="sticky" id="nav-sidebar" aria-label="{% translate 'Sidebar' %}">
+  <div class="tc-general-settings-module module">
+    <table>
+      <caption class="tc-general-settings-caption">
+        <a href="{% url 'admin:pricelist_generalsettings_changelist' %}" class="section">{% translate 'General settings' %}</a>
+      </caption>
+      <tbody>
+        <tr>
+          <th scope="row">
+            <a href="{% url 'admin:pricelist_generalsettings_changelist' %}">{% translate 'General settings' %}</a>
+          </th>
+          <td></td>
+          <td><a href="{% url 'admin:pricelist_generalsettings_changelist' %}" class="changelink">{% translate 'Change' %}</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  {% include 'admin/app_list.html' with app_list=available_apps show_changelinks=True %}
+</nav>

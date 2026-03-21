@@ -1,0 +1,29 @@
+{% extends "admin/base.html" %}
+{% load static i18n %}
+
+{% block title %}NovaQuote admin | {{ site_title|default:_("Django site admin") }}{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'pricelist/admin.css' %}">
+{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <style>
+      :root {
+        --brand: {{ general_settings.effective_primary_color }};
+        --brand-hover: {{ general_settings.effective_primary_hover }};
+      }
+    </style>
+{% endblock %}
+
+{% block branding %}
+    <div class="tc-admin-branding">
+        <img src="{{ general_settings_logo_url }}" alt="{{ general_settings.site_name|default:'NovaQuote' }}" class="tc-admin-logo">
+        <h1 class="tc-admin-title">{{ general_settings.site_name|default:"NovaQuote" }} – {% trans "Admin" %}</h1>
+    </div>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+

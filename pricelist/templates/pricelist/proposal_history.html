@@ -1,0 +1,38 @@
+{% extends "pricelist/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "History" %}: {{ proposal.reference|default:proposal.pk }} – {{ general_settings.site_name|default:"NovaQuote" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-[var(--brand)]">
+            {% trans "History" %}: {{ proposal.reference|default:_("(No reference)") }}
+        </h1>
+        <p class="mt-1 text-slate-600">
+            {% trans "Changes and updates to this calculation." %}
+        </p>
+    </div>
+
+    <div class="space-y-4">
+        {% for entry in entries %}
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-wrap items-start gap-4">
+            <div class="flex-1 min-w-0">
+                <span class="font-medium text-slate-900">{{ entry.get_action_display }}</span>
+                {% if entry.description %}<p class="mt-1 text-sm text-slate-600">{{ entry.description }}</p>{% endif %}
+            </div>
+            <div class="text-sm text-slate-500 shrink-0">
+                {{ entry.at|date:"d-m-Y H:i" }}
+                {% if entry.user %}<span class="ml-2">{% trans "by" %} {{ entry.user.get_full_name|default:entry.user.username }}</span>{% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-slate-500">{% trans "No history entries yet." %}</p>
+        {% endfor %}
+    </div>
+
+    <p class="mt-8">
+        <a href="{% url 'pricelist:proposal_detail' identifier=proposal.uuid %}" class="text-sm font-medium text-[var(--brand)] hover:underline">← {% trans "Back to calculation" %}</a>
+    </p>
+</div>
+{% endblock %}

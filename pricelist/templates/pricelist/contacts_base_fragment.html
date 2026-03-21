@@ -1,0 +1,15 @@
+{# Shared: back link for contacts organization detail. Expects back_section. #}
+{% load i18n %}
+{% if back_section == "suppliers" %}
+<a href="{% url 'pricelist:contacts_suppliers' %}" class="text-sm font-medium text-slate-600 hover:text-brand">← {% trans "Suppliers" %}</a>
+{% elif back_section == "clients" %}
+<a href="{% url 'pricelist:contacts_clients' %}" class="text-sm font-medium text-slate-600 hover:text-brand">← {% trans "Clients" %}</a>
+{% elif back_section == "leads" %}
+<a href="{% url 'pricelist:contacts_leads' %}" class="text-sm font-medium text-slate-600 hover:text-brand">← {% trans "Leads" %}</a>
+{% elif back_section == "network" %}
+<a href="{% url 'pricelist:contacts_network' %}" class="text-sm font-medium text-slate-600 hover:text-brand">← {% trans "Network" %}</a>
+{% elif back_section == "persons" %}
+<a href="{% url 'pricelist:contacts_persons' %}" class="text-sm font-medium text-slate-600 hover:text-brand">← {% trans "Persons" %}</a>
+{% else %}
+<a href="{% url 'pricelist:contacts_clients' %}" class="text-sm font-medium text-slate-600 hover:text-brand">← {% trans "Clients" %}</a>
+{% endif %}

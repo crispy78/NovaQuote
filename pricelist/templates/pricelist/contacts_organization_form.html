@@ -1,0 +1,341 @@
+{% extends "pricelist/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} – {{ general_settings.site_name|default:"NovaQuote" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-[var(--brand)]">{{ page_title }}</h1>
+        {% if organization %}
+        <a href="{% url 'pricelist:contacts_organization_detail' org_uuid=organization.uuid %}?from={{ return_from }}" class="text-sm font-medium text-slate-600 hover:text-brand">{% trans "Cancel" %}</a>
+        {% elif return_from == "suppliers" %}
+        <a href="{% url 'pricelist:contacts_suppliers' %}" class="text-sm font-medium text-slate-600 hover:text-brand">{% trans "Cancel" %}</a>
+        {% elif return_from == "clients" %}
+        <a href="{% url 'pricelist:contacts_clients' %}" class="text-sm font-medium text-slate-600 hover:text-brand">{% trans "Cancel" %}</a>
+        {% elif return_from == "leads" %}
+        <a href="{% url 'pricelist:contacts_leads' %}" class="text-sm font-medium text-slate-600 hover:text-brand">{% trans "Cancel" %}</a>
+        {% elif return_from == "network" %}
+        <a href="{% url 'pricelist:contacts_network' %}" class="text-sm font-medium text-slate-600 hover:text-brand">{% trans "Cancel" %}</a>
+        {% elif return_from == "persons" %}
+        <a href="{% url 'pricelist:contacts_persons' %}" class="text-sm font-medium text-slate-600 hover:text-brand">{% trans "Cancel" %}</a>
+        {% else %}
+        <a href="{% url 'pricelist:contacts_clients' %}" class="text-sm font-medium text-slate-600 hover:text-brand">{% trans "Cancel" %}</a>
+        {% endif %}
+    </div>
+
+    <form method="post" id="organization-form" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-8"
+          data-identity-check-url="{% url 'pricelist:contacts_organization_identity_check' %}"
+          {% if organization %}data-exclude-uuid="{{ organization.uuid }}"{% endif %}
+          data-msg-vat-dup="{% trans 'This VAT number is already registered.' %}"
+          data-msg-coc-dup="{% trans 'This Chamber of Commerce number is already registered.' %}">
+        {% csrf_token %}
+        <input type="hidden" name="return_from" value="{{ return_from }}">
+        {% if return_next %}
+        <input type="hidden" name="return_next" value="{{ return_next }}">
+        {% endif %}
+
+        {% if form.non_field_errors %}
+        <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <p class="text-sm text-slate-600" id="org-form-role-hint">
+            {% trans "Only fields relevant to the roles you select are shown. Tick another role to reveal its fields." %}
+        </p>
+        <label class="flex items-center gap-2 text-sm text-slate-800 cursor-pointer select-none">
+            <input type="checkbox" id="org-form-show-all" class="rounded border-slate-300 text-[var(--brand)] focus:ring-[var(--brand)]">
+            {% trans "Show all fields (ignore role filters)" %}
+        </label>
+
+        {# —— Core (always visible) —— #}
+        <div class="org-form-section space-y-4 border-b border-slate-100 pb-8" data-org-always="1">
+            <h2 class="text-base font-semibold text-slate-900">{% trans "Company" %}</h2>
+            <div>
+                <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.name.label }}</label>
+                {{ form.name.errors }}{{ form.name }}
+            </div>
+            <div>
+                <label for="{{ form.legal_name.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.legal_name.label }}</label>
+                {{ form.legal_name.errors }}{{ form.legal_name }}
+            </div>
+            <div>
+                <label for="{{ form.vat_number.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.vat_number.label }}</label>
+                {{ form.vat_number.errors }}{{ form.vat_number }}
+                <p id="org-duplicate-vat-msg" class="text-sm text-red-600 mt-1 hidden" role="status" aria-live="polite"></p>
+            </div>
+            <div>
+                <label for="{{ form.coc_number.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.coc_number.label }}</label>
+                {% if form.coc_number.help_text %}<p class="text-xs text-slate-500 mb-1">{{ form.coc_number.help_text }}</p>{% endif %}
+                {{ form.coc_number.errors }}{{ form.coc_number }}
+                <p id="org-duplicate-coc-msg" class="text-sm text-red-600 mt-1 hidden" role="status" aria-live="polite"></p>
+            </div>
+
+            <fieldset class="border border-slate-200 rounded-lg p-4">
+                <legend class="text-sm font-semibold text-slate-900 px-1">{{ form.roles.label }}</legend>
+                {% if form.roles.help_text %}<p class="text-xs text-slate-500 mb-3">{{ form.roles.help_text }}</p>{% endif %}
+                {{ form.roles.errors }}
+                <div class="grid sm:grid-cols-2 gap-2 mt-2">
+                    {{ form.roles }}
+                </div>
+            </fieldset>
+
+            <h2 class="text-base font-semibold text-slate-900 pt-2">{% trans "Billing address" %}</h2>
+            <div>
+                <label for="{{ form.billing_line1.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.billing_line1.label }}</label>
+                {{ form.billing_line1.errors }}{{ form.billing_line1 }}
+            </div>
+            <div>
+                <label for="{{ form.billing_line2.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.billing_line2.label }}</label>
+                {{ form.billing_line2.errors }}{{ form.billing_line2 }}
+            </div>
+            <div>
+                <label for="{{ form.billing_city.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.billing_city.label }}</label>
+                {{ form.billing_city.errors }}{{ form.billing_city }}
+            </div>
+            <div>
+                <label for="{{ form.billing_postal_code.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.billing_postal_code.label }}</label>
+                {{ form.billing_postal_code.errors }}{{ form.billing_postal_code }}
+            </div>
+            <div>
+                <label for="{{ form.billing_country.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.billing_country.label }}</label>
+                {{ form.billing_country.errors }}{{ form.billing_country }}
+            </div>
+
+            <h2 class="text-base font-semibold text-slate-900 pt-2">{% trans "Shipping address" %}</h2>
+            <div>
+                <label for="{{ form.shipping_line1.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.shipping_line1.label }}</label>
+                {{ form.shipping_line1.errors }}{{ form.shipping_line1 }}
+            </div>
+            <div>
+                <label for="{{ form.shipping_line2.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.shipping_line2.label }}</label>
+                {{ form.shipping_line2.errors }}{{ form.shipping_line2 }}
+            </div>
+            <div>
+                <label for="{{ form.shipping_city.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.shipping_city.label }}</label>
+                {{ form.shipping_city.errors }}{{ form.shipping_city }}
+            </div>
+            <div>
+                <label for="{{ form.shipping_postal_code.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.shipping_postal_code.label }}</label>
+                {{ form.shipping_postal_code.errors }}{{ form.shipping_postal_code }}
+            </div>
+            <div>
+                <label for="{{ form.shipping_country.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.shipping_country.label }}</label>
+                {{ form.shipping_country.errors }}{{ form.shipping_country }}
+            </div>
+
+            <h2 class="text-base font-semibold text-slate-900 pt-2">{% trans "General contact" %}</h2>
+            <div>
+                <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.email.label }}</label>
+                {{ form.email.errors }}{{ form.email }}
+            </div>
+            <div>
+                <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.phone.label }}</label>
+                {{ form.phone.errors }}{{ form.phone }}
+            </div>
+            <div>
+                <label for="{{ form.website.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.website.label }}</label>
+                {{ form.website.errors }}{{ form.website }}
+            </div>
+        </div>
+
+        {# —— Supplier + Client: financials —— #}
+        <div class="org-form-section space-y-4 border-b border-slate-100 pb-8 hidden" data-org-roles="SUPPLIER,CLIENT">
+            <h2 class="text-base font-semibold text-slate-900">{% trans "Financials" %} <span class="text-slate-500 font-normal text-sm">({% trans "suppliers & clients" %})</span></h2>
+            <div>
+                <label for="{{ form.iban.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.iban.label }}</label>
+                {{ form.iban.errors }}{{ form.iban }}
+            </div>
+            <div>
+                <label for="{{ form.bic_swift.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.bic_swift.label }}</label>
+                {{ form.bic_swift.errors }}{{ form.bic_swift }}
+            </div>
+            <div>
+                <label for="{{ form.payment_terms.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.payment_terms.label }}</label>
+                {% if form.payment_terms.help_text %}<p class="text-xs text-slate-500 mb-1">{{ form.payment_terms.help_text }}</p>{% endif %}
+                {{ form.payment_terms.errors }}{{ form.payment_terms }}
+            </div>
+            <div>
+                <label for="{{ form.currency.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.currency.label }}</label>
+                {{ form.currency.errors }}{{ form.currency }}
+            </div>
+            <div>
+                <label for="{{ form.credit_limit.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.credit_limit.label }}</label>
+                {{ form.credit_limit.errors }}{{ form.credit_limit }}
+            </div>
+        </div>
+
+        {# —— Supplier: logistics —— #}
+        <div class="org-form-section space-y-4 border-b border-slate-100 pb-8 hidden" data-org-roles="SUPPLIER">
+            <h2 class="text-base font-semibold text-slate-900">{% trans "Logistics & purchasing" %} <span class="text-slate-500 font-normal text-sm">({% trans "supplier" %})</span></h2>
+            <div>
+                <label for="{{ form.incoterms.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.incoterms.label }}</label>
+                {{ form.incoterms.errors }}{{ form.incoterms }}
+            </div>
+            <div>
+                <label for="{{ form.lead_time_days.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.lead_time_days.label }}</label>
+                {{ form.lead_time_days.errors }}{{ form.lead_time_days }}
+            </div>
+            <div>
+                <label for="{{ form.moq.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.moq.label }}</label>
+                {% if form.moq.help_text %}<p class="text-xs text-slate-500 mb-1">{{ form.moq.help_text }}</p>{% endif %}
+                {{ form.moq.errors }}{{ form.moq }}
+            </div>
+        </div>
+
+        {# —— Lead: pipeline —— #}
+        <div class="org-form-section space-y-4 border-b border-slate-100 pb-8 hidden" data-org-roles="LEAD">
+            <h2 class="text-base font-semibold text-slate-900">{% trans "Lead pipeline" %}</h2>
+            <div>
+                <label for="{{ form.lead_pipeline_status.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.lead_pipeline_status.label }}</label>
+                {% if form.lead_pipeline_status.help_text %}<p class="text-xs text-slate-500 mb-1">{{ form.lead_pipeline_status.help_text }}</p>{% endif %}
+                {{ form.lead_pipeline_status.errors }}{{ form.lead_pipeline_status }}
+            </div>
+        </div>
+
+        {# —— Lead & Client: promotion settings —— #}
+        <div class="org-form-section space-y-4 border-b border-slate-100 pb-8 hidden" data-org-roles="LEAD,CLIENT">
+            <h2 class="text-base font-semibold text-slate-900">{% trans "Client / lead promotion" %} <span class="text-slate-500 font-normal text-sm">({% trans "leads & clients" %})</span></h2>
+            <div>
+                <label for="{{ form.suppress_auto_client_promotion.id_for_label }}" class="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    {{ form.suppress_auto_client_promotion }}
+                    {{ form.suppress_auto_client_promotion.label }}
+                </label>
+                {% if form.suppress_auto_client_promotion.help_text %}<p class="text-xs text-slate-500 mt-1">{{ form.suppress_auto_client_promotion.help_text }}</p>{% endif %}
+                {{ form.suppress_auto_client_promotion.errors }}
+            </div>
+            <div>
+                <label for="{{ form.client_promotion_override.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.client_promotion_override.label }}</label>
+                {{ form.client_promotion_override.errors }}{{ form.client_promotion_override }}
+            </div>
+        </div>
+
+        {# —— Network —— #}
+        <div class="org-form-section space-y-4 pb-2 hidden" data-org-roles="NETWORK">
+            <h2 class="text-base font-semibold text-slate-900">{% trans "Network partner" %}</h2>
+            <div>
+                <label for="{{ form.network_value_proposition.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.network_value_proposition.label }}</label>
+                {% if form.network_value_proposition.help_text %}<p class="text-xs text-slate-500 mb-1">{{ form.network_value_proposition.help_text }}</p>{% endif %}
+                {{ form.network_value_proposition.errors }}{{ form.network_value_proposition }}
+            </div>
+            <div>
+                <label for="{{ form.network_industry_niche.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.network_industry_niche.label }}</label>
+                {% if form.network_industry_niche.help_text %}<p class="text-xs text-slate-500 mb-1">{{ form.network_industry_niche.help_text }}</p>{% endif %}
+                {{ form.network_industry_niche.errors }}{{ form.network_industry_niche }}
+            </div>
+        </div>
+
+        <div class="flex flex-wrap gap-3 pt-4 border-t border-slate-100">
+            <button type="submit" id="org-submit-btn" class="rounded-lg bg-[var(--brand)] px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed">{% trans "Save" %}</button>
+            {% if organization %}
+            <a href="{% url 'pricelist:contacts_organization_detail' org_uuid=organization.uuid %}?from={{ return_from }}" class="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">{% trans "Cancel" %}</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    var form = document.getElementById('organization-form');
+    if (!form) return;
+    var showAll = document.getElementById('org-form-show-all');
+    var sections = form.querySelectorAll('.org-form-section[data-org-roles]');
+
+    function selectedRoles() {
+        var inputs = form.querySelectorAll('input[name="roles"]:checked');
+        var out = [];
+        for (var i = 0; i < inputs.length; i++) out.push(inputs[i].value);
+        return out;
+    }
+
+    function updateSections() {
+        var roles = selectedRoles();
+        var all = showAll && showAll.checked;
+        for (var i = 0; i < sections.length; i++) {
+            var el = sections[i];
+            if (all) {
+                el.classList.remove('hidden');
+                continue;
+            }
+            var need = (el.getAttribute('data-org-roles') || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+            var show = need.some(function(r) { return roles.indexOf(r) !== -1; });
+            el.classList.toggle('hidden', !show);
+        }
+    }
+
+    form.addEventListener('change', function(e) {
+        if (e.target && e.target.name === 'roles') updateSections();
+    });
+    if (showAll) showAll.addEventListener('change', updateSections);
+    updateSections();
+})();
+
+(function() {
+    var form = document.getElementById('organization-form');
+    if (!form) return;
+    var url = form.getAttribute('data-identity-check-url');
+    if (!url) return;
+    var vatEl = document.getElementById('id_vat_number');
+    var cocEl = document.getElementById('id_coc_number');
+    var msgVat = document.getElementById('org-duplicate-vat-msg');
+    var msgCoc = document.getElementById('org-duplicate-coc-msg');
+    var btn = document.getElementById('org-submit-btn');
+    var txtVat = form.getAttribute('data-msg-vat-dup') || '';
+    var txtCoc = form.getAttribute('data-msg-coc-dup') || '';
+
+    function debounce(fn, ms) {
+        var t;
+        return function() {
+            var ctx = this, args = arguments;
+            clearTimeout(t);
+            t = setTimeout(function() { fn.apply(ctx, args); }, ms);
+        };
+    }
+
+    function setFieldWarning(elInput, elMsg, show, text) {
+        if (!elMsg) return;
+        if (show) {
+            elMsg.textContent = text;
+            elMsg.classList.remove('hidden');
+            if (elInput) elInput.classList.add('ring-2', 'ring-red-500', 'border-red-500');
+        } else {
+            elMsg.textContent = '';
+            elMsg.classList.add('hidden');
+            if (elInput) elInput.classList.remove('ring-2', 'ring-red-500', 'border-red-500');
+        }
+    }
+
+    function runCheck() {
+        var vat = vatEl ? vatEl.value.trim() : '';
+        var coc = cocEl ? cocEl.value.trim() : '';
+        var exclude = form.getAttribute('data-exclude-uuid') || '';
+        var params = new URLSearchParams();
+        params.set('vat', vat);
+        params.set('coc', coc);
+        if (exclude) params.set('exclude_uuid', exclude);
+        fetch(url + '?' + params.toString(), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                setFieldWarning(vatEl, msgVat, !!data.vat_duplicate, txtVat);
+                setFieldWarning(cocEl, msgCoc, !!data.coc_duplicate, txtCoc);
+                if (btn) btn.disabled = !!(data.vat_duplicate || data.coc_duplicate);
+            })
+            .catch(function() {
+                if (btn) btn.disabled = false;
+            });
+    }
+
+    var debounced = debounce(runCheck, 400);
+    if (vatEl) {
+        vatEl.addEventListener('input', debounced);
+        vatEl.addEventListener('blur', runCheck);
+    }
+    if (cocEl) {
+        cocEl.addEventListener('input', debounced);
+        cocEl.addEventListener('blur', runCheck);
+    }
+    runCheck();
+})();
+</script>
+{% endblock %}

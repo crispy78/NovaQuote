@@ -1,0 +1,85 @@
+{% extends "pricelist/base.html" %}
+{% load i18n pricelist_filters %}
+
+{% block title %}{{ page_title }} – {{ general_settings.site_name|default:"NovaQuote" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-[var(--brand)]">{{ page_title }}</h1>
+            <p class="mt-1 text-slate-600">{{ page_subtitle }}</p>
+        </div>
+        <a href="{% url 'pricelist:contacts_organization_create' %}?from={{ from_param }}&amp;preset={{ from_param }}" class="shrink-0 rounded-lg bg-[var(--brand)] px-4 py-2.5 text-sm font-medium text-white hover:opacity-90">{% trans "Add company" %}</a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Company" %}</th>
+                        <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Roles" %}</th>
+                        {% if contacts_section == "leads" %}
+                        <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Pipeline" %}</th>
+                        {% endif %}
+                        <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Contact" %}</th>
+                        <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{% trans "Departments" %}</th>
+                        <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right">{% trans "People" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for org in organizations %}
+                    <tr class="border-b border-slate-100 hover:bg-slate-50/50">
+                        <td class="px-4 py-3">
+                            <a href="{% url 'pricelist:contacts_organization_detail' org_uuid=org.uuid %}?from={{ from_param }}" class="font-medium text-[var(--brand)] hover:underline">{{ org.name }}</a>
+                            {% if org.legal_name and org.legal_name != org.name %}
+                            <div class="text-xs text-slate-500">{{ org.legal_name }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-slate-700">
+                            {% for ra in org.role_assignments.all %}
+                            <span class="inline-block mr-1 mb-1 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">{{ ra.get_role_display }}</span>
+                            {% empty %}—{% endfor %}
+                        </td>
+                        {% if contacts_section == "leads" %}
+                        <td class="px-4 py-3 text-slate-700">
+                            {% if org.lead_pipeline_status %}
+                            {{ org.get_lead_pipeline_status_display }}
+                            {% else %}
+                            <span class="text-slate-400">—</span>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                        <td class="px-4 py-3 text-slate-600">
+                            {% if org.email %}<div>{{ org.email|contact_mailto }}</div>{% endif %}
+                            {% if org.phone %}<div>{{ org.phone|contact_tel }}</div>{% endif %}
+                            {% if not org.email and not org.phone %}—{% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-slate-600">
+                            {% with depts=org.departments.all %}
+                            {% if depts %}
+                            <ul class="list-disc list-inside space-y-0.5">
+                                {% for d in depts|slice:":4" %}
+                                <li>{{ d.name }}{% if d.email %} — {{ d.email|contact_mailto }}{% endif %}</li>
+                                {% endfor %}
+                            </ul>
+                            {% if depts|length > 4 %}<span class="text-xs text-slate-500">+{% trans "more" %}</span>{% endif %}
+                            {% else %}—{% endif %}
+                            {% endwith %}
+                        </td>
+                        <td class="px-4 py-3 text-right text-slate-700">{{ org.memberships.all|length }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{% if contacts_section == 'leads' %}6{% else %}5{% endif %}" class="px-4 py-10 text-center text-slate-500">
+                            {% trans "No organizations yet. Add them in the admin under Organizations." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

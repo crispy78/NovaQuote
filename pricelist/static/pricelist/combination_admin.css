@@ -1,0 +1,44 @@
+/* Larger "Add another Combination item" link */
+.inline-group .tabular tr.add-row td a,
+.inline-group div.add-row a {
+  font-size: 1.15rem;
+  font-weight: 500;
+}
+
+/* Price and margin: two columns; fieldset may scroll horizontally when space is limited */
+fieldset:has(.price-margin-columns) {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.price-margin-columns {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 2rem;
+  align-items: flex-start;
+  margin-top: 1rem;
+  min-width: 900px;
+}
+
+.price-margin-columns .price-margin-left {
+  flex: 0 0 auto;
+  width: 280px;
+}
+
+.price-margin-columns .price-margin-right {
+  flex: 0 0 auto;
+  width: 600px;
+}
+
+/* Margin preview table: fixed width, no line breaks */
+#live-margin-info table,
+#live-marge-info table {
+  min-width: 560px;
+  width: 100%;
+}
+#live-margin-info th,
+#live-margin-info td,
+#live-marge-info th,
+#live-marge-info td {
+  white-space: nowrap;
+}

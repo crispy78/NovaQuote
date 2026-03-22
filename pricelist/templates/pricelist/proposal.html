@@ -16,7 +16,9 @@
                     {% trans "Adjust quantities; the total updates in real time." %}
                 </p>
             </div>
-            <a href="{% url 'pricelist:proposal_list' %}" class="text-sm font-medium text-slate-600 hover:text-[var(--brand)] shrink-0">{% trans "Saved calculations" %}</a>
+            <div class="flex flex-wrap items-center gap-3 justify-end">
+                <a href="{% url 'pricelist:proposal_list' %}" class="text-sm font-medium text-slate-600 hover:text-[var(--brand)] shrink-0">{% trans "Saved calculations" %}</a>
+            </div>
         </div>
 
         <form id="proposal-save-form" method="post" action="{% url 'pricelist:proposal_save' %}" class="flex flex-col gap-3 w-full">
@@ -99,7 +101,7 @@
                 </thead>
                 <tbody id="proposal-tbody">
                     {% for line in proposal_simple_lines %}
-                    <tr class="proposal-row border-b border-slate-100 hover:bg-slate-50/50" data-unit-price="{{ line.unit_price|price_for_js:settings }}" data-type="{{ line.type }}" data-entity-uuid="{{ line.entity_uuid }}" {% if line.type == "product" %}data-product-entity-uuid="{{ line.entity_uuid }}"{% endif %}>
+                    <tr class="proposal-row border-b border-slate-100 hover:bg-slate-50/50" data-unit-price="{{ line.unit_price|price_for_js:settings }}" data-unit-cost="{{ line.unit_cost|price_for_js:settings }}" data-type="{{ line.type }}" data-row-type="{{ line.row_kind }}" data-is-margin="{% if line.is_margin_line %}true{% else %}false{% endif %}" data-entity-uuid="{{ line.entity_uuid }}" data-contract-hours-year="{% if line.contract_hours_per_year is not None %}{{ line.contract_hours_per_year }}{% endif %}" {% if line.type == "product" %}data-product-entity-uuid="{{ line.entity_uuid }}"{% endif %}>
                         <td class="px-4 py-3">
                             <span class="font-medium text-slate-900">{{ line.name }}</span>
                             {% if line.type == "combination" %}<span class="ml-2 text-xs text-emerald-600">{% trans "Package" %}</span>{% endif %}
@@ -136,7 +138,7 @@
                     {% endfor %}
                     {% for product in proposal_configurable_products %}
                     {% for row in product.initial_rows %}
-                    <tr class="proposal-row proposal-configurable border-b border-slate-100 hover:bg-slate-50/50" data-type="product" data-entity-uuid="{{ product.product_entity_uuid }}" data-product-entity-uuid="{{ product.product_entity_uuid }}" data-unit-price="{{ row.base_unit_price|price_for_js:settings }}" data-name="{{ product.name }}">
+                    <tr class="proposal-row proposal-configurable border-b border-slate-100 hover:bg-slate-50/50" data-type="product" data-row-type="{{ row.row_kind }}" data-is-margin="{% if row.is_margin_line %}true{% else %}false{% endif %}" data-entity-uuid="{{ product.product_entity_uuid }}" data-product-entity-uuid="{{ product.product_entity_uuid }}" data-unit-price="{{ row.base_unit_price|price_for_js:settings }}" data-unit-cost="{{ row.base_unit_cost|price_for_js:settings }}" data-name="{{ product.name }}" data-contract-hours-year="{% if product.contract_hours_per_year is not None %}{{ product.contract_hours_per_year }}{% endif %}">
                         <td class="px-4 py-3">
                             <div class="flex items-start justify-between gap-2">
                                 <span class="font-medium text-slate-900">{{ product.name }}</span>
@@ -147,7 +149,7 @@
                                             <label class="inline-flex items-center justify-end gap-2 cursor-pointer w-full">
                                                 <span class="truncate">{{ opt.label }}</span>
                                                 {% with an_str=opt.article_number|stringformat:"s" %}
-                                                <input type="checkbox" class="proposal-option-cb" value="{{ an_str }}" data-price="{{ opt.unit_price }}" {% if an_str in row.option_article_numbers %}checked{% endif %}>
+                                                <input type="checkbox" class="proposal-option-cb" value="{{ an_str }}" data-price="{{ opt.unit_price }}" data-cost="{{ opt.unit_cost }}" {% if an_str in row.option_article_numbers %}checked{% endif %}>
                                                 {% endwith %}
                                             </label>
                                         </li>
@@ -209,9 +211,18 @@
              data-thousands-sep="{{ proposal_thousands_sep|default:'.' }}">
             {% for d in active_contract_durations %}
             <div class="contract-option-card bg-white rounded-xl border border-slate-200 p-5 shadow-sm"
+                 data-duration-uuid="{{ d.uuid }}"
                  data-duration-months="{{ d.duration_months }}"
                  data-hardware-fee-pct="{{ d.hardware_fee_percentage }}"
                  data-visits-per-contract="{{ d.visits_per_contract }}"
+                 data-hardware-fee-basis="{{ d.hardware_fee_basis }}"
+                 data-labour-unit-basis="{{ d.labour_unit_basis }}"
+                 data-include-hardware-fee="{% if d.include_hardware_fee %}1{% else %}0{% endif %}"
+                 data-include-labour="{% if d.include_labour %}1{% else %}0{% endif %}"
+                 data-override-time="{% if d.override_time_per_product_minutes is not None %}{{ d.override_time_per_product_minutes }}{% endif %}"
+                 data-override-min-visit="{% if d.override_minimum_visit_minutes is not None %}{{ d.override_minimum_visit_minutes }}{% endif %}"
+                 data-override-hourly="{% if d.override_hourly_rate is not None %}{{ d.override_hourly_rate }}{% endif %}"
+                 data-labour-calculation-mode="{{ d.labour_calculation_mode }}"
                  data-name="{{ d.name|escape }}">
                 <h3 class="font-semibold text-slate-900">{{ d.name }}</h3>
                 <dl class="mt-3 space-y-1 text-sm">
@@ -240,13 +251,13 @@
                     </div>
 
                     <div class="breakdown-block rounded-lg bg-slate-50 p-3">
-                        <p class="text-xs font-medium text-slate-600 mb-1">{% trans "Visit time" %}</p>
+                        <p class="text-xs font-medium text-slate-600 mb-1 breakdown-labour-step1-title">{% trans "Visit time" %}</p>
                         <p class="text-sm font-semibold text-slate-800 breakdown-actual-time-result tabular-nums">—</p>
                         <p class="text-xs text-slate-500 mt-0.5 breakdown-formula-actual-time">—</p>
                     </div>
 
                     <div class="breakdown-block rounded-lg bg-slate-50 p-3">
-                        <p class="text-xs font-medium text-slate-600 mb-1">{% trans "Labour costs" %}</p>
+                        <p class="text-xs font-medium text-slate-600 mb-1 breakdown-labour-step2-title">{% trans "Labour costs" %}</p>
                         <p class="text-sm font-semibold text-[var(--brand)] breakdown-cost-per-visit tabular-nums">—</p>
                         <p class="text-xs text-slate-500 mt-0.5 breakdown-formula-cost-per-visit">—</p>
                         <p class="text-sm font-semibold text-[var(--brand)] mt-2 breakdown-total-labour tabular-nums">—</p>
@@ -358,9 +369,6 @@
     var calcI18n = calcI18nEl ? JSON.parse(calcI18nEl.textContent) : {};
     var contractDurations = contractDurationsEl ? JSON.parse(contractDurationsEl.textContent) : [];
     var maintenanceSettings = maintenanceSettingsEl ? JSON.parse(maintenanceSettingsEl.textContent) : {};
-    var timePerProduct = Number(maintenanceSettings.time_per_product_minutes) || 15;
-    var minimumVisit = Number(maintenanceSettings.minimum_visit_minutes) || 60;
-    var hourlyRate = Number(maintenanceSettings.hourly_rate) || 75;
 
     var offersDataEl = document.getElementById('product-supplier-offers-data');
     var PRODUCT_OFFERS = {};
@@ -458,34 +466,83 @@
         return currency + ' ' + parts.join(decimalSep);
     }
 
-    function getProposalTotals() {
+    function clearBreakdown(card) {
+        var breakdown = card.querySelector('.contract-calculation-breakdown');
+        if (!breakdown) return;
+        var sel = ['breakdown-duration-months', 'breakdown-years', 'breakdown-hardware-fee', 'breakdown-formula-hardware', 'breakdown-actual-time-result', 'breakdown-formula-actual-time', 'breakdown-cost-per-visit', 'breakdown-formula-cost-per-visit', 'breakdown-total-labour', 'breakdown-formula-total-labour', 'breakdown-formula-total-contract', 'breakdown-formula-monthly'];
+        sel.forEach(function(cls) {
+            var el = breakdown.querySelector('.' + cls);
+            if (el) el.textContent = '—';
+        });
+        var s1 = breakdown.querySelector('.breakdown-labour-step1-title');
+        if (s1) s1.textContent = calcI18n.visit_time_label || 'Visit time';
+        var s2 = breakdown.querySelector('.breakdown-labour-step2-title');
+        if (s2) s2.textContent = calcI18n.labour_costs_label || 'Labour costs';
+    }
+
+    function cartHasLineQuantity() {
+        var any = false;
+        cart.querySelectorAll('.proposal-qty').forEach(function(inp) {
+            if ((parseInt(inp.value, 10) || 0) > 0) any = true;
+        });
+        return any;
+    }
+
+    function getProposalTotals(hfb, lub) {
         var rows = cart.querySelectorAll('.proposal-row');
-        var totalValue = 0;
+        var basisValue = 0;
         var totalProducts = 0;
         rows.forEach(function(row) {
             var input = row.querySelector('.proposal-qty');
             var qty = input ? (parseInt(input.value, 10) || 0) : 0;
             var cell = row.querySelector('.proposal-line-total');
-            var lineTotal = cell ? parseFloat(cell.getAttribute('data-line-total')) || 0 : 0;
-            totalValue += lineTotal;
-            totalProducts += qty;
+            var lineTotalSales = cell ? parseFloat(cell.getAttribute('data-line-total')) || 0 : 0;
+            var lineTotalCost = parseFloat(row.getAttribute('data-line-total-cost')) || 0;
+            var isMargin = row.getAttribute('data-is-margin') === 'true';
+            var rowType = row.getAttribute('data-row-type') || '';
+            var addHw = 0;
+            if (hfb === 'sales_line_totals') addHw = lineTotalSales;
+            else if (hfb === 'cost_line_totals') addHw = lineTotalCost;
+            else if (hfb === 'margin_sales_only' && isMargin) addHw = lineTotalSales;
+            else if (hfb === 'margin_cost_only' && isMargin) addHw = lineTotalCost;
+            basisValue += addHw;
+            var countLabour = false;
+            if (qty <= 0) countLabour = false;
+            else if (lub === 'all_units') countLabour = true;
+            else if (lub === 'margin_products_only') countLabour = isMargin;
+            else if (lub === 'exclude_combinations') countLabour = rowType !== 'combination';
+            if (countLabour) totalProducts += qty;
         });
-        return { totalValue: totalValue, totalProducts: totalProducts };
+        return { totalValue: basisValue, totalProducts: totalProducts };
     }
 
-    function updateContractOptions(totals) {
+    function getContractHoursTotalHours(lub, durationMonths) {
+        var rows = cart.querySelectorAll('.proposal-row');
+        var years = durationMonths / 12;
+        var totalHours = 0;
+        rows.forEach(function(row) {
+            var input = row.querySelector('.proposal-qty');
+            var qty = input ? (parseInt(input.value, 10) || 0) : 0;
+            var chRaw = row.getAttribute('data-contract-hours-year');
+            var ch = chRaw === null || chRaw === '' ? 0 : parseFloat(chRaw);
+            if (isNaN(ch)) ch = 0;
+            var isMargin = row.getAttribute('data-is-margin') === 'true';
+            var rowType = row.getAttribute('data-row-type') || '';
+            var countLabour = false;
+            if (qty <= 0) countLabour = false;
+            else if (lub === 'all_units') countLabour = true;
+            else if (lub === 'margin_products_only') countLabour = isMargin;
+            else if (lub === 'exclude_combinations') countLabour = rowType !== 'combination';
+            if (countLabour) totalHours += qty * ch * years;
+        });
+        return totalHours;
+    }
+
+    function updateContractOptions() {
         var container = document.getElementById('proposal-contract-options');
-        function clearBreakdown(card) {
-            var breakdown = card.querySelector('.contract-calculation-breakdown');
-            if (!breakdown) return;
-            var sel = ['breakdown-duration-months', 'breakdown-years', 'breakdown-hardware-fee', 'breakdown-formula-hardware', 'breakdown-actual-time-result', 'breakdown-formula-actual-time', 'breakdown-cost-per-visit', 'breakdown-formula-cost-per-visit', 'breakdown-total-labour', 'breakdown-formula-total-labour', 'breakdown-formula-total-contract', 'breakdown-formula-monthly'];
-            sel.forEach(function(cls) {
-                var el = breakdown.querySelector('.' + cls);
-                if (el) el.textContent = '—';
-            });
-        }
-        if (!container || !totals || totals.totalProducts <= 0) {
-            var cards = document.querySelectorAll('.contract-option-card');
+        if (!container) return;
+        var cards = container.querySelectorAll('.contract-option-card');
+        if (!cartHasLineQuantity()) {
             cards.forEach(function(card) {
                 var totalEl = card.querySelector('.contract-option-total');
                 var monthlyEl = card.querySelector('.contract-option-monthly');
@@ -495,20 +552,42 @@
             });
             return;
         }
-        var totalValue = totals.totalValue;
-        var totalProducts = totals.totalProducts;
-        var cards = container.querySelectorAll('.contract-option-card');
+        var defTime = Number(maintenanceSettings.time_per_product_minutes) || 15;
+        var defMin = Number(maintenanceSettings.minimum_visit_minutes) || 60;
+        var defHr = Number(maintenanceSettings.hourly_rate) || 75;
         cards.forEach(function(card) {
+            var hfb = card.getAttribute('data-hardware-fee-basis') || 'sales_line_totals';
+            var lub = card.getAttribute('data-labour-unit-basis') || 'all_units';
+            var totals = getProposalTotals(hfb, lub);
+            var includeHw = card.getAttribute('data-include-hardware-fee') !== '0';
+            var includeLab = card.getAttribute('data-include-labour') !== '0';
             var durationMonths = parseInt(card.getAttribute('data-duration-months'), 10) || 0;
             var feePct = parseFloat(card.getAttribute('data-hardware-fee-pct')) || 0;
             var visitsPerContract = parseFloat(card.getAttribute('data-visits-per-contract')) || 6;
             if (durationMonths <= 0) return;
-            var hardwareFee = totalValue * (feePct / 100);
-            var calculatedTime = totalProducts * timePerProduct;
-            var actualTime = calculatedTime < minimumVisit ? minimumVisit : calculatedTime;
-            var costPerVisit = (actualTime / 60) * hourlyRate;
+            var ot = card.getAttribute('data-override-time');
+            var om = card.getAttribute('data-override-min-visit');
+            var oh = card.getAttribute('data-override-hourly');
+            var timePerProduct = (ot !== null && String(ot).trim() !== '') ? parseFloat(ot) : defTime;
+            if (isNaN(timePerProduct)) timePerProduct = defTime;
+            var minimumVisit = (om !== null && String(om).trim() !== '') ? parseFloat(om) : defMin;
+            if (isNaN(minimumVisit)) minimumVisit = defMin;
+            var hourlyRate = (oh !== null && String(oh).trim() !== '') ? parseFloat(oh) : defHr;
+            if (isNaN(hourlyRate)) hourlyRate = defHr;
+            var hardwareFee = includeHw ? totals.totalValue * (feePct / 100) : 0;
+            var labourMode = card.getAttribute('data-labour-calculation-mode') || 'visit_time';
             var years = durationMonths / 12;
-            var totalLabour = costPerVisit * visitsPerContract;
+            var totalLabour;
+            var calculatedTime, actualTime, costPerVisit, totalHoursInPeriod;
+            if (labourMode === 'contract_hours') {
+                totalHoursInPeriod = getContractHoursTotalHours(lub, durationMonths);
+                totalLabour = includeLab ? totalHoursInPeriod * hourlyRate : 0;
+            } else {
+                calculatedTime = totals.totalProducts * timePerProduct;
+                actualTime = calculatedTime < minimumVisit ? minimumVisit : calculatedTime;
+                costPerVisit = (actualTime / 60) * hourlyRate;
+                totalLabour = includeLab ? costPerVisit * visitsPerContract : 0;
+            }
             var totalContract = hardwareFee + totalLabour;
             var monthly = totalContract / durationMonths;
             var totalEl = card.querySelector('.contract-option-total');
@@ -525,27 +604,40 @@
                 var hf = breakdown.querySelector('.breakdown-hardware-fee');
                 if (hf) hf.textContent = fmt(hardwareFee);
                 var t = function(key) { return calcI18n[key] || key; };
+                var tit1 = breakdown.querySelector('.breakdown-labour-step1-title');
+                var tit2 = breakdown.querySelector('.breakdown-labour-step2-title');
+                if (tit2) tit2.textContent = t('labour_costs_label');
+                if (tit1) tit1.textContent = labourMode === 'contract_hours' ? t('contract_hours_catalog_label') : t('visit_time_label');
                 var fH = breakdown.querySelector('.breakdown-formula-hardware');
-                if (fH) fH.textContent = feePct + '% ' + t('of_purchase_value') + ' (' + fmt(totalValue) + ')';
+                if (fH) fH.textContent = feePct + '% ' + t('of_purchase_value') + ' (' + fmt(totals.totalValue) + ')';
                 var atResult = breakdown.querySelector('.breakdown-actual-time-result');
-                if (atResult) atResult.textContent = actualTime.toFixed(1) + ' min ' + t('per_visit');
                 var fAt = breakdown.querySelector('.breakdown-formula-actual-time');
-                if (fAt) {
-                    var prodLabel = totalProducts + ' ' + t('product_s') + ' × ' + timePerProduct + ' min = ' + calculatedTime.toFixed(1) + ' min. ';
-                    if (actualTime <= calculatedTime) {
-                        fAt.textContent = prodLabel + (t('above_minimum').replace(/\{min\}/g, minimumVisit));
-                    } else {
-                        fAt.textContent = prodLabel + (t('below_minimum').replace(/\{min\}/g, minimumVisit));
-                    }
-                }
                 var cpv = breakdown.querySelector('.breakdown-cost-per-visit');
-                if (cpv) cpv.textContent = fmt(costPerVisit) + ' ' + t('per_visit');
                 var fCpv = breakdown.querySelector('.breakdown-formula-cost-per-visit');
-                if (fCpv) fCpv.textContent = actualTime.toFixed(1) + ' min ÷ 60 × ' + fmt(hourlyRate) + ' ' + t('hourly_rate');
                 var tl = breakdown.querySelector('.breakdown-total-labour');
-                if (tl) tl.textContent = fmt(totalLabour);
                 var fTl = breakdown.querySelector('.breakdown-formula-total-labour');
-                if (fTl) fTl.textContent = fmt(costPerVisit) + ' × ' + visitsPerContract + ' ' + t('visits_in_contract_period');
+                if (labourMode === 'contract_hours') {
+                    if (atResult) atResult.textContent = totalHoursInPeriod.toFixed(2) + ' h';
+                    if (fAt) fAt.textContent = t('contract_hours_explainer');
+                    if (cpv) cpv.textContent = fmt(hourlyRate) + ' /' + t('per_hour');
+                    if (fCpv) fCpv.textContent = totalHoursInPeriod.toFixed(2) + ' h × ' + fmt(hourlyRate);
+                    if (tl) tl.textContent = fmt(totalLabour);
+                    if (fTl) fTl.textContent = totalHoursInPeriod.toFixed(2) + ' h × ' + fmt(hourlyRate) + ' (' + t('hourly_rate') + ')';
+                } else {
+                    if (atResult) atResult.textContent = actualTime.toFixed(1) + ' min ' + t('per_visit');
+                    if (fAt) {
+                        var prodLabel = totals.totalProducts + ' ' + t('product_s') + ' × ' + timePerProduct + ' min = ' + calculatedTime.toFixed(1) + ' min. ';
+                        if (actualTime <= calculatedTime) {
+                            fAt.textContent = prodLabel + (t('above_minimum').replace(/\{min\}/g, String(minimumVisit)));
+                        } else {
+                            fAt.textContent = prodLabel + (t('below_minimum').replace(/\{min\}/g, String(minimumVisit)));
+                        }
+                    }
+                    if (cpv) cpv.textContent = fmt(costPerVisit) + ' ' + t('per_visit');
+                    if (fCpv) fCpv.textContent = actualTime.toFixed(1) + ' min ÷ 60 × ' + fmt(hourlyRate) + ' ' + t('hourly_rate');
+                    if (tl) tl.textContent = fmt(totalLabour);
+                    if (fTl) fTl.textContent = fmt(costPerVisit) + ' × ' + visitsPerContract + ' ' + t('visits_in_contract_period');
+                }
                 var fTc = breakdown.querySelector('.breakdown-formula-total-contract');
                 if (fTc) fTc.textContent = fmt(totalContract);
                 var fMo = breakdown.querySelector('.breakdown-formula-monthly');
@@ -559,16 +651,23 @@
         var grand = 0;
         rows.forEach(function(row) {
             var baseUnitPrice = parseFloat(row.getAttribute('data-unit-price')) || 0;
+            var baseUnitCost = parseFloat(row.getAttribute('data-unit-cost')) || 0;
             var optionsExtra = 0;
+            var optionsCostExtra = 0;
             row.querySelectorAll('.proposal-option-cb:checked').forEach(function(cb) {
                 var p = parseFloat(cb.getAttribute('data-price'));
+                var c = parseFloat(cb.getAttribute('data-cost'));
                 if (!isNaN(p)) optionsExtra += p;
+                if (!isNaN(c)) optionsCostExtra += c;
             });
             var effectiveUnitPrice = baseUnitPrice + optionsExtra;
+            var effectiveUnitCost = baseUnitCost + optionsCostExtra;
             var input = row.querySelector('.proposal-qty');
             var qty = input ? (parseInt(input.value, 10) || 0) : 0;
             var lineTotal = effectiveUnitPrice * qty;
+            var lineTotalCost = effectiveUnitCost * qty;
             grand += lineTotal;
+            row.setAttribute('data-line-total-cost', lineTotalCost.toFixed(2));
             var cell = row.querySelector('.proposal-line-total');
             if (cell) {
                 cell.textContent = qty ? formatMoney(lineTotal) : '—';
@@ -581,8 +680,7 @@
         });
         var grandEl = document.getElementById('proposal-grand-total');
         if (grandEl) grandEl.textContent = grand > 0 ? formatMoney(grand) : '—';
-        var totals = getProposalTotals();
-        updateContractOptions(totals);
+        updateContractOptions();
     }
 
     cart.addEventListener('input', function(e) {

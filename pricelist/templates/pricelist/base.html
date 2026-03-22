@@ -206,7 +206,7 @@
                             {% trans "Proposal" %}
                             <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </button>
-                        <div id="nav-proposal-menu" class="absolute right-0 top-full pt-1 w-56 opacity-0 invisible transition-all duration-150 dropdown-panel">
+                        <div id="nav-proposal-menu" class="absolute right-0 top-full pt-1 w-64 opacity-0 invisible transition-all duration-150 dropdown-panel z-[60] overflow-visible">
                             <div class="bg-white rounded-xl shadow-lg border border-slate-200 py-2 overflow-hidden">
                                 <a href="{% url 'pricelist:proposal' %}" class="flex gap-3 px-4 py-3 hover:bg-slate-50 transition group">
                                     <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 group-hover:bg-brand/10 group-hover:text-brand">
@@ -215,6 +215,15 @@
                                     <div class="min-w-0">
                                         <span class="block font-semibold text-slate-900 text-sm">{% trans "New proposal" %}</span>
                                         <span class="block text-xs text-slate-500 mt-0.5">{% trans "Create a new calculation" %}</span>
+                                    </div>
+                                </a>
+                                <a href="{% url 'pricelist:contract_duration_list' %}" class="flex gap-3 px-4 py-3 hover:bg-slate-50 transition group border-t border-slate-100">
+                                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 group-hover:bg-brand/10 group-hover:text-brand">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    </span>
+                                    <div class="min-w-0">
+                                        <span class="block font-semibold text-slate-900 text-sm">{% trans "Contract durations" %}</span>
+                                        <span class="block text-xs text-slate-500 mt-0.5">{% trans "Maintenance periods for proposals" %}</span>
                                     </div>
                                 </a>
                                 <a href="{% url 'pricelist:proposal_list' %}" class="flex gap-3 px-4 py-3 hover:bg-slate-50 transition group border-t border-slate-100">

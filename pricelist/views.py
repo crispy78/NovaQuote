@@ -34,6 +34,7 @@ from .models import (
     ProductOption,
     ProductSupplier,
     Proposal,
+    SalesPricingRule,
     ProposalContractSnapshot,
     ProposalHistory,
     ProposalLine,
@@ -68,6 +69,54 @@ from .frontend_access import get_capabilities, require_capability
 def _organization_has_client_or_lead_role(org: Organization) -> bool:
     codes = set(org.role_assignments.values_list("role", flat=True))
     return OrganizationRole.ROLE_CLIENT in codes or OrganizationRole.ROLE_LEAD in codes
+
+
+def _proposal_product_unit_cost(product: Product, ps: ProductSupplier | None, rounding: str) -> Decimal:
+    raw = ps.cost_price if ps is not None and ps.cost_price is not None else product.cost_price
+    if raw is None:
+        return Decimal("0")
+    return round_price(raw, rounding)
+
+
+def _contract_duration_for_proposal_template(d: ContractDuration) -> dict:
+    """Serializable dict for proposal contract cards (template data-* attributes + JS)."""
+
+    def fnum(v):
+        if v is None:
+            return None
+        return float(v)
+
+    return {
+        "uuid": str(d.uuid),
+        "name": d.name,
+        "duration_months": d.duration_months,
+        "hardware_fee_percentage": float(d.hardware_fee_percentage),
+        "visits_per_contract": float(d.visits_per_contract),
+        "hardware_fee_basis": d.hardware_fee_basis,
+        "labour_unit_basis": d.labour_unit_basis,
+        "include_hardware_fee": d.include_hardware_fee_in_contract,
+        "include_labour": d.include_labour_in_contract,
+        "override_time_per_product_minutes": fnum(d.override_time_per_product_minutes),
+        "override_minimum_visit_minutes": fnum(d.override_minimum_visit_minutes),
+        "override_hourly_rate": fnum(d.override_hourly_rate),
+        "labour_calculation_mode": d.labour_calculation_mode,
+    }
+
+
+def _annual_contract_hours_per_year_float(product: Product) -> float | None:
+    ah = product.annual_contract_hours
+    return float(ah) if ah is not None else None
+
+
+def _combination_annual_contract_hours_per_year_float(comb: Combination) -> float | None:
+    total = Decimal("0")
+    found = False
+    for item in comb.items.all():
+        ah = item.product.annual_contract_hours
+        if ah is not None:
+            total += ah
+            found = True
+    return float(total) if found else None
 
 
 def set_proposal_client_crm_from_post(request, proposal: Proposal) -> None:
@@ -263,45 +312,60 @@ def proposal_view(request):
         except Http404:
             saved_proposal = None
 
+    # Apply saved proposal prefill to initial quantities (not plain "new proposal")
+    _use_saved_cart = saved_proposal is not None
+
     # Build simple lines: combinations (with contents for display) + products that have no options
     proposal_simple_lines = []
     for comb in context["combinations"]:
         price = comb.offer_price
         if price is not None:
-            qty = saved_quantities.get(("combination", comb.pk), 0) if saved_proposal else 0
+            qty = saved_quantities.get(("combination", comb.pk), 0) if _use_saved_cart else 0
             # List each product in the combination and its selected options, for display under the package name
             combination_items = []
             for item in comb.items.all():
                 label = f"{item.product.brand or ''} {item.product.model_type or ''}".strip() or item.product.name or str(item.product)
                 option_labels = [f"{p.brand or ''} {p.model_type or ''}".strip() or str(p) for p in item.selected_options.all()]
                 combination_items.append({"label": label, "options": option_labels})
+            tc = comb.total_cost_price
+            unit_cost = round_price(tc, rounding) if tc is not None else Decimal("0")
+            margin_hw = comb.sales_margin_products or Decimal("0")
             proposal_simple_lines.append({
                 "type": "combination",
                 "entity_uuid": str(comb.uuid),
                 "name": comb.name,
                 "unit_price": round_price(price, rounding),
+                "unit_cost": unit_cost,
+                "is_margin_line": bool(margin_hw > 0),
+                "row_kind": "combination",
                 "initial_quantity": qty,
                 "combination_items": combination_items,
+                "contract_hours_per_year": _combination_annual_contract_hours_per_year_float(comb),
             })
     for product in context["products"]:
         if product.pk in products_with_options:
             continue
-        posted_ps_uuid = saved_product_supplier_uuid.get(product.pk) if saved_proposal else None
+        posted_ps_uuid = saved_product_supplier_uuid.get(product.pk) if _use_saved_cart else None
         ps = resolve_supplier_for_proposal_line(product, posted_ps_uuid)
         unit = rounded_unit_price_for_product_supplier(product, ps, rounding)
         if unit is not None:
             label = f"{product.brand or ''} {product.model_type or ''}".strip() or product.name or str(product)
-            qty = saved_quantities.get(("product", product.pk), 0) if saved_proposal else 0
+            qty = saved_quantities.get(("product", product.pk), 0) if _use_saved_cart else 0
             offers = offer_dicts_for_product(product, rounding)
+            ucost = _proposal_product_unit_cost(product, ps, rounding)
             proposal_simple_lines.append({
                 "type": "product",
                 "entity_uuid": str(product.article_number),
                 "name": label or _("Product"),
                 "unit_price": unit,
+                "unit_cost": ucost,
+                "is_margin_line": bool(product.is_margin_product),
+                "row_kind": "product",
                 "initial_quantity": qty,
                 "supplier_offers": offers,
                 "initial_product_supplier_uuid": str(ps.uuid) if ps else "",
                 "multi_supplier": len(offers) > 1,
+                "contract_hours_per_year": _annual_contract_hours_per_year_float(product),
             })
 
     # Configurable products: one or more rows per product, each row = one unit with selected options
@@ -315,11 +379,13 @@ def proposal_view(request):
         options = []
         for opt in product.option_lines.all():
             opt_price = opt.option_product.calculated_sales_price
+            opt_cost = opt.option_product.cost_price
             options.append(
                 {
                     "article_number": str(opt.option_product.article_number),
                     "label": opt.short_description.strip() or str(opt.option_product),
                     "unit_price": float(round_price(opt_price, rounding)) if opt_price is not None else 0.0,
+                    "unit_cost": float(round_price(opt_cost, rounding)) if opt_cost is not None else 0.0,
                 }
             )
         offers = offer_dicts_for_product(product, rounding)
@@ -335,10 +401,14 @@ def proposal_view(request):
             base_unit = rounded_unit_price_for_product_supplier(product, ps, rounding)
             if base_unit is None:
                 base_unit = round_price(product.calculated_sales_price, rounding)
+            base_ucost = _proposal_product_unit_cost(product, ps, rounding)
             rows_render.append({
                 "option_article_numbers": row.get("option_article_numbers") or [],
                 "product_supplier_uuid": row_ps_uuid,
                 "base_unit_price": base_unit,
+                "base_unit_cost": base_ucost,
+                "is_margin_line": bool(product.is_margin_product),
+                "row_kind": "configurable",
                 "resolved_product_supplier_uuid": str(ps.uuid) if ps else "",
             })
         default_unit = round_price(product.calculated_sales_price, rounding)
@@ -350,6 +420,7 @@ def proposal_view(request):
             "initial_rows": rows_render,
             "supplier_offers": offers,
             "multi_supplier": len(offers) > 1,
+            "contract_hours_per_year": _annual_contract_hours_per_year_float(product),
         })
 
     def _product_supplier_count(prod):
@@ -378,13 +449,7 @@ def proposal_view(request):
     # Active contract durations for maintenance contract options (proposal)
     active_durations = ContractDuration.objects.filter(is_active=True).order_by("duration_months")
     context["active_contract_durations"] = [
-        {
-            "name": d.name,
-            "duration_months": d.duration_months,
-            "hardware_fee_percentage": float(d.hardware_fee_percentage),
-            "visits_per_contract": float(d.visits_per_contract),
-        }
-        for d in active_durations
+        _contract_duration_for_proposal_template(d) for d in active_durations
     ]
     # Maintenance calculation settings (for JS; visits_per_contract is per duration)
     context["maintenance_settings"] = {
@@ -403,6 +468,13 @@ def proposal_view(request):
         "below_minimum": _("Below minimum of {min} min, so we use {min} min."),
         "hourly_rate": _("hourly rate"),
         "visits_in_contract_period": _("visits in contract period"),
+        "visit_time_label": _("Visit time"),
+        "contract_hours_catalog_label": _("Contract hours (catalog)"),
+        "labour_costs_label": _("Labour costs"),
+        "per_hour": _("per hour"),
+        "contract_hours_explainer": _(
+            "Quantity × catalog hours/year × contract length, for each line that counts toward labour."
+        ),
     }
     return render(request, "pricelist/proposal.html", context)
 
@@ -568,6 +640,10 @@ def product_detail_view(request, uuid):
                 "option_lines",
                 queryset=ProductOption.objects.select_related("option_product", "option_product__profit_profile").order_by("sort_order"),
             ),
+            Prefetch(
+                "profit_profile__sales_pricing_rules",
+                queryset=SalesPricingRule.objects.order_by("sort_order", "id"),
+            ),
         )
         .order_by("pk")
     )
@@ -584,9 +660,12 @@ def product_detail_view(request, uuid):
             return float(prod.fixed_sales_price)
         if not prod.profit_profile or not prod.profit_profile.is_active:
             return None
-        from decimal import Decimal
-        basis = cost_decimal * (Decimal("1.0") + (prod.profit_profile.markup_percentage / Decimal("100")))
-        return float(basis + prod.profit_profile.markup_fixed)
+        if cost_decimal is None:
+            return None
+        from .services.pricing_rules import sales_price_from_cost_and_profile
+
+        out = sales_price_from_cost_and_profile(Decimal(str(cost_decimal)), prod.profit_profile)
+        return float(out) if out is not None else None
 
     show_chart = getattr(gen_settings, "show_price_history_chart_on_product_page", False)
     show_cost = getattr(gen_settings, "show_cost_in_price_history_chart", True)
@@ -1022,6 +1101,13 @@ def proposal_detail_view(request, identifier):
             "below_minimum": _("Below minimum of {min} min, so we use {min} min."),
             "hourly_rate": _("hourly rate"),
             "visits_in_contract_period": _("visits in contract period"),
+            "visit_time_label": _("Visit time"),
+            "contract_hours_catalog_label": _("Contract hours (catalog)"),
+            "labour_costs_label": _("Labour costs"),
+            "per_hour": _("per hour"),
+            "contract_hours_explainer": _(
+                "Quantity × catalog hours/year × contract length, for each line that counts toward labour."
+            ),
         },
     }
     inv = get_invoice_for_proposal(proposal)

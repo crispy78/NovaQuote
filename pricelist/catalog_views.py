@@ -27,12 +27,21 @@ from .catalog_forms import (
     CatalogProductForm,
     CatalogProductSupplierFormSet,
     CatalogProfitProfileForm,
+    SalesPricingRuleFormSet,
     ensure_preferred_product_supplier_offer,
     primary_supplier_row_from_formset,
     refresh_combination_sales_price,
 )
 from .frontend_access import get_capabilities, require_capability
-from .models import Category, Combination, CombinationItem, Product, ProductOption, ProductSupplier, ProfitProfile
+from .models import (
+    Category,
+    Combination,
+    CombinationItem,
+    Product,
+    ProductOption,
+    ProductSupplier,
+    ProfitProfile,
+)
 
 
 def _product_label(p: Product) -> str:
@@ -682,14 +691,90 @@ def catalog_profit_profile_list_view(request):
 @require_http_methods(["GET", "POST"])
 @require_capability("catalog_change")
 def catalog_profit_profile_create_view(request):
+    """Create profile; include sales pricing rule formset (same as edit) so the decision table is visible."""
+    rule_prefix = "sales_pricing_rules"
     if request.method == "POST":
         form = CatalogProfitProfileForm(request.POST)
         if form.is_valid():
-            row = form.save()
-            messages.success(request, _("Profit profile created."))
-            return redirect("pricelist:catalog_profit_profile_edit", profile_uuid=row.uuid)
-    else:
-        form = CatalogProfitProfileForm()
+            use_rules = form.cleaned_data.get("use_sales_pricing_rules")
+            with transaction.atomic():
+                profile = form.save()
+                if use_rules:
+                    formset = SalesPricingRuleFormSet(
+                        request.POST,
+                        instance=profile,
+                        prefix=rule_prefix,
+                    )
+                    if not formset.is_valid():
+                        transaction.set_rollback(True)
+                        retry_fs = SalesPricingRuleFormSet(
+                            request.POST,
+                            instance=ProfitProfile(),
+                            prefix=rule_prefix,
+                        )
+                        retry_fs.is_valid()
+                        return render(
+                            request,
+                            "pricelist/catalog_profit_profile_form.html",
+                            {
+                                "page_title": _("Add profit profile"),
+                                "page_subtitle": _("Create a new profit profile."),
+                                "form": form,
+                                "rule_formset": retry_fs,
+                                "is_new": True,
+                            },
+                        )
+                    kept = 0
+                    for f in formset.forms:
+                        cd = getattr(f, "cleaned_data", None)
+                        if not cd or cd.get("DELETE"):
+                            continue
+                        kept += 1
+                    if kept == 0:
+                        transaction.set_rollback(True)
+                        messages.error(
+                            request,
+                            _("Add at least one pricing rule, or turn off the decision table."),
+                        )
+                        retry_fs = SalesPricingRuleFormSet(
+                            request.POST,
+                            instance=ProfitProfile(),
+                            prefix=rule_prefix,
+                        )
+                        retry_fs.is_valid()
+                        return render(
+                            request,
+                            "pricelist/catalog_profit_profile_form.html",
+                            {
+                                "page_title": _("Add profit profile"),
+                                "page_subtitle": _("Create a new profit profile."),
+                                "form": form,
+                                "rule_formset": retry_fs,
+                                "is_new": True,
+                            },
+                        )
+                    formset.save()
+                messages.success(request, _("Profit profile created."))
+                return redirect("pricelist:catalog_profit_profile_edit", profile_uuid=profile.uuid)
+        retry_fs = SalesPricingRuleFormSet(
+            request.POST,
+            instance=ProfitProfile(),
+            prefix=rule_prefix,
+        )
+        retry_fs.is_valid()
+        return render(
+            request,
+            "pricelist/catalog_profit_profile_form.html",
+            {
+                "page_title": _("Add profit profile"),
+                "page_subtitle": _("Create a new profit profile."),
+                "form": form,
+                "rule_formset": retry_fs,
+                "is_new": True,
+            },
+        )
+    form = CatalogProfitProfileForm()
+    formset = SalesPricingRuleFormSet(instance=ProfitProfile(), prefix=rule_prefix)
     return render(
         request,
         "pricelist/catalog_profit_profile_form.html",
@@ -697,6 +782,7 @@ def catalog_profit_profile_create_view(request):
             "page_title": _("Add profit profile"),
             "page_subtitle": _("Create a new profit profile."),
             "form": form,
+            "rule_formset": formset,
             "is_new": True,
         },
     )
@@ -705,15 +791,46 @@ def catalog_profit_profile_create_view(request):
 @require_http_methods(["GET", "POST"])
 @require_capability("catalog_change")
 def catalog_profit_profile_edit_view(request, profile_uuid):
-    profile = get_object_or_404(ProfitProfile, uuid=profile_uuid)
+    profile = get_object_or_404(
+        ProfitProfile.objects.prefetch_related("sales_pricing_rules"),
+        uuid=profile_uuid,
+    )
     if request.method == "POST":
         form = CatalogProfitProfileForm(request.POST, instance=profile)
-        if form.is_valid():
-            form.save()
-            messages.success(request, _("Profit profile saved."))
-            return redirect("pricelist:catalog_profit_profile_list")
+        formset = SalesPricingRuleFormSet(
+            request.POST,
+            instance=profile,
+            prefix="sales_pricing_rules",
+        )
+        if form.is_valid() and formset.is_valid():
+            use_rules = form.cleaned_data.get("use_sales_pricing_rules")
+            if use_rules:
+                kept = 0
+                for f in formset.forms:
+                    cd = getattr(f, "cleaned_data", None)
+                    if not cd or cd.get("DELETE"):
+                        continue
+                    kept += 1
+                if kept == 0:
+                    messages.error(
+                        request,
+                        _("Add at least one pricing rule, or turn off the decision table."),
+                    )
+                else:
+                    with transaction.atomic():
+                        form.save()
+                        formset.save()
+                    messages.success(request, _("Profit profile saved."))
+                    return redirect("pricelist:catalog_profit_profile_list")
+            else:
+                with transaction.atomic():
+                    form.save()
+                    formset.save()
+                messages.success(request, _("Profit profile saved."))
+                return redirect("pricelist:catalog_profit_profile_list")
     else:
         form = CatalogProfitProfileForm(instance=profile)
+        formset = SalesPricingRuleFormSet(instance=profile, prefix="sales_pricing_rules")
     return render(
         request,
         "pricelist/catalog_profit_profile_form.html",
@@ -721,6 +838,7 @@ def catalog_profit_profile_edit_view(request, profile_uuid):
             "page_title": _("Edit profit profile"),
             "page_subtitle": profile.name,
             "form": form,
+            "rule_formset": formset,
             "is_new": False,
             "profit_profile": profile,
         },

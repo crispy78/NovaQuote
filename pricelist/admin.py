@@ -38,6 +38,7 @@ from .models import (
     ProposalLine,
     ProductOption,
     ProfitProfile,
+    SalesPricingRule,
     Supplier,
     UserFrontendProfile,
     format_number_with_separators,
@@ -99,7 +100,30 @@ def _format_sales_price_admin(value):
 
 @admin.register(ContractDuration)
 class ContractDurationAdmin(admin.ModelAdmin):
-    list_display = ("name", "duration_months", "hardware_fee_percentage", "visits_per_contract", "is_active")
+    list_display = (
+        "name",
+        "duration_months",
+        "hardware_fee_percentage",
+        "hardware_fee_basis",
+        "labour_unit_basis",
+        "visits_per_contract",
+        "is_active",
+    )
+    fields = (
+        "name",
+        "duration_months",
+        "hardware_fee_percentage",
+        "visits_per_contract",
+        "is_active",
+        "hardware_fee_basis",
+        "labour_unit_basis",
+        "labour_calculation_mode",
+        "include_hardware_fee_in_contract",
+        "include_labour_in_contract",
+        "override_time_per_product_minutes",
+        "override_minimum_visit_minutes",
+        "override_hourly_rate",
+    )
     list_editable = ("is_active",)
     list_filter = ("is_active",)
     ordering = ("duration_months",)
@@ -298,12 +322,37 @@ class CategoryAdmin(admin.ModelAdmin):
         return actions
 
 
+class SalesPricingRuleInline(admin.TabularInline):
+    model = SalesPricingRule
+    extra = 0
+    ordering = ("sort_order", "id")
+    fields = (
+        "uuid",
+        "sort_order",
+        "is_fallback",
+        "condition_operator",
+        "condition_value",
+        "condition_value_to",
+        "markup_percentage",
+        "markup_fixed",
+    )
+    readonly_fields = ("uuid",)
+
+
 @admin.register(ProfitProfile)
 class ProfitProfileAdmin(admin.ModelAdmin):
-    list_display = ("uuid", "name", "markup_percentage", "markup_fixed", "is_active")
-    list_filter = ("is_active",)
+    list_display = (
+        "uuid",
+        "name",
+        "markup_percentage",
+        "markup_fixed",
+        "use_sales_pricing_rules",
+        "is_active",
+    )
+    list_filter = ("is_active", "use_sales_pricing_rules")
     search_fields = ("name",)
     readonly_fields = ("uuid",)
+    inlines = (SalesPricingRuleInline,)
 
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser

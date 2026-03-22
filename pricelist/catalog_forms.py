@@ -36,6 +36,7 @@ from .models import (
     ProductOption,
     ProductSupplier,
     ProfitProfile,
+    SalesPricingRule,
     Supplier,
 )
 
@@ -55,6 +56,8 @@ class CatalogProductForm(forms.ModelForm):
             "profit_profile",
             "show_in_price_list",
             "is_margin_product",
+            "contract_hours",
+            "contract_hours_period",
             "supplier_crm_organization",
             "supplier_crm_department",
             "supplier_crm_contact",
@@ -100,6 +103,8 @@ class CatalogProductForm(forms.ModelForm):
         self.fields["supplier_crm_contact"].help_text = _(
             "Optional. Default contact at that company."
         )
+        self.fields["contract_hours"].widget.attrs.setdefault("step", "0.01")
+        self.fields["contract_hours"].widget.attrs.setdefault("min", "0")
         _style_form_widgets(self.fields)
 
     def clean_profit_profile(self):
@@ -109,6 +114,22 @@ class CatalogProductForm(forms.ModelForm):
         if not profile.is_active:
             raise forms.ValidationError(_("The selected profit profile is inactive."))
         return profile
+
+    def clean(self):
+        cleaned = super().clean()
+        ch = cleaned.get("contract_hours")
+        cp = (cleaned.get("contract_hours_period") or "").strip()
+        if ch is not None and not cp:
+            self.add_error(
+                "contract_hours_period",
+                _("Select a period when contract hours are set."),
+            )
+        if ch is None and cp:
+            self.add_error(
+                "contract_hours",
+                _("Enter contract hours or clear the period."),
+            )
+        return cleaned
 
 
 class CatalogProductSupplierOfferForm(forms.ModelForm):
@@ -325,7 +346,13 @@ class CatalogProfitProfileForm(forms.ModelForm):
 
     class Meta:
         model = ProfitProfile
-        fields = ["name", "markup_percentage", "markup_fixed", "is_active"]
+        fields = [
+            "name",
+            "markup_percentage",
+            "markup_fixed",
+            "use_sales_pricing_rules",
+            "is_active",
+        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -334,6 +361,47 @@ class CatalogProfitProfileForm(forms.ModelForm):
             "rounded border-slate-300 text-[var(--brand)] focus:ring-[var(--brand)] shrink-0 mt-1 h-4 w-4"
         )
         self.fields["is_active"].widget.attrs.setdefault("class", cb_attrs)
+        self.fields["use_sales_pricing_rules"].widget.attrs.setdefault("class", cb_attrs)
+
+
+class CatalogSalesPricingRuleForm(forms.ModelForm):
+    """One row in the sales price decision table."""
+
+    class Meta:
+        model = SalesPricingRule
+        fields = [
+            "sort_order",
+            "is_fallback",
+            "condition_operator",
+            "condition_value",
+            "condition_value_to",
+            "markup_percentage",
+            "markup_fixed",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _style_form_widgets(self.fields)
+        cb_attrs = (
+            "rounded border-slate-300 text-[var(--brand)] focus:ring-[var(--brand)] shrink-0 mt-1 h-4 w-4"
+        )
+        self.fields["is_fallback"].widget.attrs.setdefault("class", cb_attrs)
+        for fname in ("condition_value", "condition_value_to", "markup_percentage", "markup_fixed"):
+            self.fields[fname].widget.attrs.setdefault("step", "0.01")
+        self.fields["sort_order"].widget.attrs.setdefault("min", "0")
+        self.fields["condition_operator"].required = False
+
+
+SalesPricingRuleFormSet = inlineformset_factory(
+    ProfitProfile,
+    SalesPricingRule,
+    form=CatalogSalesPricingRuleForm,
+    extra=1,
+    can_delete=True,
+    min_num=0,
+    validate_min=False,
+    max_num=100,
+)
 
 
 def refresh_combination_sales_price(combination: Combination) -> None:

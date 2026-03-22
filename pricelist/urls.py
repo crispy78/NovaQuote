@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import catalog_views, contacts_views, invoice_views
+from . import catalog_views, contacts_views, contract_duration_views, invoice_views
 from .views import (
     home_view,
     order_create_view,
@@ -113,6 +113,26 @@ urlpatterns = [
     ),
     path("product/<uuid:uuid>/", product_detail_view, name="product_detail"),
     path("proposal/", proposal_view, name="proposal"),
+    path(
+        "proposal/contract-durations/",
+        contract_duration_views.contract_duration_list_view,
+        name="contract_duration_list",
+    ),
+    path(
+        "proposal/contract-durations/add/",
+        contract_duration_views.contract_duration_create_view,
+        name="contract_duration_create",
+    ),
+    path(
+        "proposal/contract-durations/<uuid:duration_uuid>/edit/",
+        contract_duration_views.contract_duration_edit_view,
+        name="contract_duration_edit",
+    ),
+    path(
+        "proposal/contract-durations/<uuid:duration_uuid>/remove/",
+        contract_duration_views.contract_duration_delete_view,
+        name="contract_duration_delete",
+    ),
     path("proposal/save/", proposal_save_view, name="proposal_save"),
     path("proposal/saved/", proposal_list_view, name="proposal_list"),
     path("proposal/saved/<str:identifier>/", proposal_detail_view, name="proposal_detail"),

@@ -4,7 +4,15 @@ from decimal import Decimal
 
 from django.test import TestCase
 
-from pricelist.models import Product, ProductSupplier, ProfitProfile, Supplier, round_price
+from pricelist.models import (
+    Product,
+    ProductSupplier,
+    ProfitProfile,
+    SalesPricingRule,
+    Supplier,
+    round_price,
+)
+from pricelist.services.pricing_rules import sales_price_from_cost_and_profile
 from pricelist.services.product_supplier_offers import pick_product_supplier, resolve_supplier_for_proposal_line
 
 
@@ -37,6 +45,88 @@ class ProfitProfileMarkupTests(TestCase):
     def test_round_price_syntax(self):
         self.assertEqual(round_price(Decimal("10.04"), "0.05"), Decimal("10.05"))
         self.assertEqual(round_price(Decimal("10.04"), "1-0.01"), Decimal("9.99"))
+
+
+class SalesPricingRulesServiceTests(TestCase):
+    def setUp(self):
+        self.profile = ProfitProfile.objects.create(
+            name="RuleProfile",
+            markup_percentage=Decimal("100.00"),
+            markup_fixed=Decimal("0.00"),
+            use_sales_pricing_rules=True,
+        )
+
+    def test_empty_rules_falls_back_to_flat_markup(self):
+        self.assertEqual(
+            sales_price_from_cost_and_profile(Decimal("50.00"), self.profile),
+            Decimal("100.00"),
+        )
+
+    def test_first_match_wins_by_sort_order(self):
+        SalesPricingRule.objects.create(
+            profit_profile=self.profile,
+            sort_order=1,
+            is_fallback=False,
+            condition_operator=SalesPricingRule.OP_GTE,
+            condition_value=Decimal("0.00"),
+            markup_percentage=Decimal("10.00"),
+            markup_fixed=Decimal("0.00"),
+        )
+        SalesPricingRule.objects.create(
+            profit_profile=self.profile,
+            sort_order=0,
+            is_fallback=False,
+            condition_operator=SalesPricingRule.OP_LT,
+            condition_value=Decimal("200.00"),
+            markup_percentage=Decimal("5.00"),
+            markup_fixed=Decimal("0.00"),
+        )
+        # Second rule (sort 0) matches first: 100 * 1.05 = 105
+        self.assertEqual(
+            sales_price_from_cost_and_profile(Decimal("100.00"), self.profile),
+            Decimal("105.00"),
+        )
+
+    def test_between_and_fallback(self):
+        SalesPricingRule.objects.create(
+            profit_profile=self.profile,
+            sort_order=0,
+            is_fallback=False,
+            condition_operator=SalesPricingRule.OP_BETWEEN,
+            condition_value=Decimal("10.00"),
+            condition_value_to=Decimal("20.00"),
+            markup_percentage=Decimal("0.00"),
+            markup_fixed=Decimal("0.00"),
+        )
+        SalesPricingRule.objects.create(
+            profit_profile=self.profile,
+            sort_order=1,
+            is_fallback=True,
+            condition_operator="",
+            condition_value=None,
+            markup_percentage=Decimal("10.00"),
+            markup_fixed=Decimal("2.00"),
+        )
+        self.assertEqual(
+            sales_price_from_cost_and_profile(Decimal("15.00"), self.profile),
+            Decimal("15.00"),
+        )
+        self.assertEqual(
+            sales_price_from_cost_and_profile(Decimal("100.00"), self.profile),
+            Decimal("112.00"),
+        )
+
+    def test_no_match_without_fallback_returns_none(self):
+        SalesPricingRule.objects.create(
+            profit_profile=self.profile,
+            sort_order=0,
+            is_fallback=False,
+            condition_operator=SalesPricingRule.OP_GT,
+            condition_value=Decimal("500.00"),
+            markup_percentage=Decimal("10.00"),
+            markup_fixed=Decimal("0.00"),
+        )
+        self.assertIsNone(sales_price_from_cost_and_profile(Decimal("100.00"), self.profile))
 
 
 class ProductSupplierPreferredSyncTests(TestCase):

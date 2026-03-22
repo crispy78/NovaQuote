@@ -442,6 +442,25 @@ def get_general_settings():
 class ContractDuration(models.Model):
     """Contract duration option for maintenance contracts on the proposal (e.g. 3 years, 5 years)."""
 
+    HW_BASIS_SALES = "sales_line_totals"
+    HW_BASIS_COST = "cost_line_totals"
+    HW_BASIS_MARGIN_SALES = "margin_sales_only"
+    HW_BASIS_MARGIN_COST = "margin_cost_only"
+    HARDWARE_FEE_BASIS_CHOICES = [
+        (HW_BASIS_SALES, _("Sum of line totals (sales value)")),
+        (HW_BASIS_COST, _("Sum of line totals (catalog cost)")),
+        (HW_BASIS_MARGIN_SALES, _("Margin products only — sales value")),
+        (HW_BASIS_MARGIN_COST, _("Margin products only — catalog cost")),
+    ]
+    LABOUR_ALL = "all_units"
+    LABOUR_MARGIN_ONLY = "margin_products_only"
+    LABOUR_EXCLUDE_COMBOS = "exclude_combinations"
+    LABOUR_UNIT_BASIS_CHOICES = [
+        (LABOUR_ALL, _("Count quantity on every line")),
+        (LABOUR_MARGIN_ONLY, _("Count only margin products (hardware)")),
+        (LABOUR_EXCLUDE_COMBOS, _("Exclude packages — products only")),
+    ]
+
     uuid = models.UUIDField(
         default=uuid.uuid4,
         editable=False,
@@ -475,6 +494,76 @@ class ContractDuration(models.Model):
         default=Decimal("6.00"),
         verbose_name=_("Visits per contract period"),
         help_text=_("Total number of maintenance visits in this contract period (e.g. 6 for 3 years, 10 for 5 years)."),
+    )
+    hardware_fee_basis = models.CharField(
+        max_length=32,
+        choices=HARDWARE_FEE_BASIS_CHOICES,
+        default=HW_BASIS_SALES,
+        verbose_name=_("Hardware fee base"),
+        help_text=_("Which cart line amounts the hardware fee percentage is applied to."),
+    )
+    labour_unit_basis = models.CharField(
+        max_length=32,
+        choices=LABOUR_UNIT_BASIS_CHOICES,
+        default=LABOUR_ALL,
+        verbose_name=_("Labour / visit count"),
+        help_text=_("Which lines contribute to the product count for labour time (minutes × products)."),
+    )
+    include_hardware_fee_in_contract = models.BooleanField(
+        default=True,
+        verbose_name=_("Include hardware fee in contract total"),
+        help_text=_("If unchecked, the contract total excludes the hardware fee for this duration."),
+    )
+    include_labour_in_contract = models.BooleanField(
+        default=True,
+        verbose_name=_("Include labour in contract total"),
+        help_text=_("If unchecked, the contract total excludes labour for this duration."),
+    )
+    override_time_per_product_minutes = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name=_("Override: time per product (minutes)"),
+        help_text=_("Leave empty to use the value from general settings."),
+    )
+    override_minimum_visit_minutes = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name=_("Override: minimum visit (minutes)"),
+        help_text=_("Leave empty to use the value from general settings."),
+    )
+    override_hourly_rate = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name=_("Override: hourly rate"),
+        help_text=_("Leave empty to use the value from general settings."),
+    )
+    LABOUR_MODE_VISIT_TIME = "visit_time"
+    LABOUR_MODE_CONTRACT_HOURS = "contract_hours"
+    LABOUR_CALCULATION_MODE_CHOICES = [
+        (
+            LABOUR_MODE_VISIT_TIME,
+            _("Visit time (minutes × units, minimum visit, × visits per contract)"),
+        ),
+        (
+            LABOUR_MODE_CONTRACT_HOURS,
+            _("Product contract hours (hours/year from catalog × quantity × hourly rate)"),
+        ),
+    ]
+    labour_calculation_mode = models.CharField(
+        max_length=32,
+        choices=LABOUR_CALCULATION_MODE_CHOICES,
+        default=LABOUR_MODE_VISIT_TIME,
+        verbose_name=_("Labour calculation"),
+        help_text=_(
+            "Visit time uses minutes per product and visits. Contract hours uses each product’s "
+            "contract hours (and period) from the catalog, scaled to the contract length."
+        ),
     )
 
     class Meta:
@@ -534,6 +623,14 @@ class ProfitProfile(models.Model):
         default=Decimal("0.00"),
         help_text=_("Fixed markup in euros added to the sales price."),
     )
+    use_sales_pricing_rules = models.BooleanField(
+        default=False,
+        verbose_name=_("Use decision table for sales price"),
+        help_text=_(
+            "When enabled, sales price follows the ordered rule rows below (first match wins; optional catch-all row). "
+            "When disabled, the flat markup fields are used."
+        ),
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -544,6 +641,115 @@ class ProfitProfile(models.Model):
 
     def __str__(self) -> str:
         return f"{self.name} ({self.markup_percentage:.2f}% + € {self.markup_fixed:.2f})"
+
+
+class SalesPricingRule(models.Model):
+    """
+    One row in a profit profile decision table: optional condition on cost price, then apply markup % + fixed.
+    First matching row (by order) wins; rows marked as catch-all apply when nothing else matches.
+    """
+
+    uuid = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        unique=True,
+        verbose_name=_("UUID"),
+    )
+    profit_profile = models.ForeignKey(
+        ProfitProfile,
+        on_delete=models.CASCADE,
+        related_name="sales_pricing_rules",
+        verbose_name=_("Profit profile"),
+    )
+    sort_order = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("Order"),
+        help_text=_("Lower numbers are evaluated first."),
+    )
+    is_fallback = models.BooleanField(
+        default=False,
+        verbose_name=_("Else (catch-all)"),
+        help_text=_(
+            "If checked, this row applies when no other row matches. Leave the condition empty for this row."
+        ),
+    )
+    OP_LT = "lt"
+    OP_LTE = "lte"
+    OP_GT = "gt"
+    OP_GTE = "gte"
+    OP_EQ = "eq"
+    OP_BETWEEN = "between"
+    OPERATOR_CHOICES = [
+        (OP_LT, _("is less than")),
+        (OP_LTE, _("is less than or equal to")),
+        (OP_GT, _("is greater than")),
+        (OP_GTE, _("is greater than or equal to")),
+        (OP_EQ, _("equals")),
+        (OP_BETWEEN, _("is between")),
+    ]
+    condition_operator = models.CharField(
+        max_length=16,
+        choices=OPERATOR_CHOICES,
+        blank=True,
+        verbose_name=_("Cost price"),
+        help_text=_("Compared to catalog cost price. Not used for a catch-all row."),
+    )
+    condition_value = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name=_("Value"),
+        help_text=_("Compare cost to this amount (lower bound for “between”)."),
+    )
+    condition_value_to = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name=_("Upper value"),
+        help_text=_("Upper bound when using “between” (inclusive)."),
+    )
+    markup_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        verbose_name=_("Markup %"),
+        help_text=_("Percentage on cost (e.g. 20 for 20%)."),
+    )
+    markup_fixed = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        verbose_name=_("Fixed markup"),
+        help_text=_("Added after percentage markup."),
+    )
+
+    class Meta:
+        db_table = "catalogus_salespricingrule"
+        ordering = ("profit_profile", "sort_order", "id")
+        verbose_name = _("Sales pricing rule")
+        verbose_name_plural = _("Sales pricing rules")
+
+    def __str__(self) -> str:
+        if self.is_fallback:
+            return f"Else {self.markup_percentage}% + {self.markup_fixed}"
+        return f"Rule {self.sort_order}"
+
+    def clean(self):
+        super().clean()
+        if self.is_fallback:
+            return
+        if not self.condition_operator:
+            raise ValidationError(
+                {"condition_operator": _("Choose a condition or enable “Else (catch-all)” on this row.")}
+            )
+        if self.condition_operator == self.OP_BETWEEN:
+            if self.condition_value is None or self.condition_value_to is None:
+                raise ValidationError(_("“Between” requires both lower and upper values."))
+            if self.condition_value > self.condition_value_to:
+                raise ValidationError(_("The lower value must not be greater than the upper value."))
+        elif self.condition_value is None:
+            raise ValidationError({"condition_value": _("Enter a value to compare against cost.")})
 
 
 class Product(models.Model):
@@ -615,6 +821,34 @@ class Product(models.Model):
         verbose_name=_("Margin product"),
         help_text=_("On by default. Turn off for services/other items: revenue counts in total but not in margin calculation; shown as 'other revenue'."),
     )
+    CONTRACT_PERIOD_WEEK = "week"
+    CONTRACT_PERIOD_MONTH = "month"
+    CONTRACT_PERIOD_QUARTER = "quarter"
+    CONTRACT_PERIOD_YEAR = "year"
+    CONTRACT_HOURS_PERIOD_CHOICES = [
+        ("", _("— Not set —")),
+        (CONTRACT_PERIOD_WEEK, _("Per week")),
+        (CONTRACT_PERIOD_MONTH, _("Per month")),
+        (CONTRACT_PERIOD_QUARTER, _("Per quarter")),
+        (CONTRACT_PERIOD_YEAR, _("Per year")),
+    ]
+    contract_hours = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name=_("Contract hours"),
+        help_text=_(
+            "Optional. Maintenance hours covered for this product (see period). Used when a contract duration uses labour from product contract hours."
+        ),
+    )
+    contract_hours_period = models.CharField(
+        max_length=16,
+        blank=True,
+        choices=CONTRACT_HOURS_PERIOD_CHOICES,
+        verbose_name=_("Contract hours period"),
+        help_text=_("How often the contract hours amount applies (e.g. hours per month)."),
+    )
     supplier_crm_organization = models.ForeignKey(
         "Organization",
         on_delete=models.SET_NULL,
@@ -657,6 +891,16 @@ class Product(models.Model):
 
     def clean(self):
         super().clean()
+        ch = self.contract_hours
+        cp = (self.contract_hours_period or "").strip()
+        if ch is not None and not cp:
+            raise ValidationError(
+                {"contract_hours_period": _("Select a period when contract hours are set.")}
+            )
+        if ch is None and cp:
+            raise ValidationError(
+                {"contract_hours": _("Enter contract hours or clear the period.")}
+            )
         org_id = self.supplier_crm_organization_id
         dept = self.supplier_crm_department_id
         contact = self.supplier_crm_contact
@@ -699,8 +943,25 @@ class Product(models.Model):
         cost = ps.cost_price if ps is not None else self.cost_price
         if cost is None or not self.profit_profile or not self.profit_profile.is_active:
             return None
-        basis = cost * (Decimal("1.0") + (self.profit_profile.markup_percentage / Decimal("100")))
-        return basis + self.profit_profile.markup_fixed
+        from .services.pricing_rules import sales_price_from_cost_and_profile
+
+        return sales_price_from_cost_and_profile(cost, self.profit_profile)
+
+    def annual_contract_hours(self) -> Decimal | None:
+        """Hours per calendar year from contract_hours + period, or None if not configured."""
+        if self.contract_hours is None or not (self.contract_hours_period or "").strip():
+            return None
+        h = self.contract_hours
+        p = self.contract_hours_period
+        if p == self.CONTRACT_PERIOD_WEEK:
+            return h * Decimal("52")
+        if p == self.CONTRACT_PERIOD_MONTH:
+            return h * Decimal("12")
+        if p == self.CONTRACT_PERIOD_QUARTER:
+            return h * Decimal("4")
+        if p == self.CONTRACT_PERIOD_YEAR:
+            return h
+        return None
 
     def preferred_product_supplier(self):
         """
@@ -728,8 +989,9 @@ class Product(models.Model):
             return self.fixed_sales_price
         if ps.cost_price is None or not self.profit_profile or not self.profit_profile.is_active:
             return None
-        basis = ps.cost_price * (Decimal("1.0") + (self.profit_profile.markup_percentage / Decimal("100")))
-        return basis + self.profit_profile.markup_fixed
+        from .services.pricing_rules import sales_price_from_cost_and_profile
+
+        return sales_price_from_cost_and_profile(ps.cost_price, self.profit_profile)
 
     def __str__(self) -> str:
         label = f"{self.brand or ''} {self.model_type or ''}".strip()

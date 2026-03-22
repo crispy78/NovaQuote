@@ -1,0 +1,69 @@
+{% extends "pricelist/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} – {{ general_settings.site_name|default:"NovaQuote" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-[var(--brand)]">{{ page_title }}</h1>
+            <p class="mt-1 text-slate-600">{{ page_subtitle }}</p>
+        </div>
+        <a href="{% url 'pricelist:contract_duration_list' %}" class="text-sm font-medium text-slate-600 hover:text-[var(--brand)]">{% trans "Back to list" %}</a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="rounded-lg bg-red-50 text-red-800 px-4 py-2 text-sm">{{ form.non_field_errors }}</div>
+            {% endif %}
+            {% if duration_obj %}
+            <div class="rounded-lg bg-slate-50 border border-slate-200 px-4 py-3 text-sm">
+                <span class="font-medium text-slate-700">{% trans "UUID" %}</span>
+                <p class="mt-1 font-mono text-xs text-slate-600 break-all">{{ duration_obj.uuid }}</p>
+            </div>
+            {% endif %}
+
+            <div>
+                <h2 class="text-lg font-semibold text-slate-900 border-b border-slate-200 pb-2 mb-4">{% trans "Period and fees" %}</h2>
+                <div class="space-y-4">
+                    {% with field=form.name %}{% include "pricelist/_contract_duration_field.html" %}{% endwith %}
+                    {% with field=form.duration_months %}{% include "pricelist/_contract_duration_field.html" %}{% endwith %}
+                    {% with field=form.hardware_fee_percentage %}{% include "pricelist/_contract_duration_field.html" %}{% endwith %}
+                    {% with field=form.visits_per_contract %}{% include "pricelist/_contract_duration_field.html" %}{% endwith %}
+                    {% with field=form.is_active %}{% include "pricelist/_contract_duration_field.html" %}{% endwith %}
+                </div>
+            </div>
+
+            <div>
+                <h2 class="text-lg font-semibold text-slate-900 border-b border-slate-200 pb-2 mb-4">{% trans "Contract calculation" %}</h2>
+                <p class="text-sm text-slate-600 mb-4">{% trans "These rules apply on the proposal page for this contract option. Each duration can use different bases and toggles." %}</p>
+                <div class="space-y-4">
+                    {% with field=form.hardware_fee_basis %}{% include "pricelist/_contract_duration_field.html" %}{% endwith %}
+                    {% with field=form.labour_unit_basis %}{% include "pricelist/_contract_duration_field.html" %}{% endwith %}
+                    {% with field=form.labour_calculation_mode %}{% include "pricelist/_contract_duration_field.html" %}{% endwith %}
+                    {% with field=form.include_hardware_fee_in_contract %}{% include "pricelist/_contract_duration_field.html" %}{% endwith %}
+                    {% with field=form.include_labour_in_contract %}{% include "pricelist/_contract_duration_field.html" %}{% endwith %}
+                </div>
+            </div>
+
+            <div>
+                <h2 class="text-lg font-semibold text-slate-900 border-b border-slate-200 pb-2 mb-4">{% trans "Optional overrides (labour)" %}</h2>
+                <p class="text-sm text-slate-600 mb-4">{% trans "Leave empty to use general settings (Admin → General settings) for time per product, minimum visit, and hourly rate." %}</p>
+                <div class="space-y-4">
+                    {% with field=form.override_time_per_product_minutes %}{% include "pricelist/_contract_duration_field.html" %}{% endwith %}
+                    {% with field=form.override_minimum_visit_minutes %}{% include "pricelist/_contract_duration_field.html" %}{% endwith %}
+                    {% with field=form.override_hourly_rate %}{% include "pricelist/_contract_duration_field.html" %}{% endwith %}
+                </div>
+            </div>
+
+            <div class="pt-2 flex flex-wrap gap-3">
+                <button type="submit" class="rounded-lg bg-[var(--brand)] px-4 py-2.5 text-sm font-medium text-white hover:opacity-90">{% trans "Save" %}</button>
+                <a href="{% url 'pricelist:contract_duration_list' %}" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">{% trans "Cancel" %}</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

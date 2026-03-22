@@ -121,6 +121,12 @@ A catalog **product** can have several **supplier offers** (`Product supplier of
 
 On the frontend, the **Products** menu (for users with catalog access) lists **Products**, **Combinations**, **Categories**, **Profit profiles**, and **Image library** — each entry links to its overview page (add, remove, and trash actions are on those pages). The same data is available under **Admin → Categories** and **Admin → Profit profiles**.
 
+**Profit profiles** can use a **flat** markup (percentage + fixed) or, when enabled, a **sales price decision table**: ordered rows with conditions on catalog cost (including “between”), first matching row wins, optional **Else** row; both are edited on the profit profile form (catalog or admin).
+
+Under **Proposal → Contract durations** (`/proposal/contract-durations/`), users with proposal access manage each **contract duration** (name, months, hardware fee %, visits, active). **Contract calculation** fields control what feeds the hardware fee (sales vs catalog cost, optionally margin-only lines), how labour “product count” is derived (all lines, margin products only, or products excluding packages), **labour calculation** (visit time vs **product contract hours** from the catalog), whether hardware fee and/or labour are included in the contract total, and optional **overrides** for time per product, minimum visit, and hourly rate (otherwise general settings apply). Inactive durations are hidden on the proposal.
+
+Catalog **products** (and the catalog editor) can define optional **contract hours** with a **period** (week / month / quarter / year); those hours are normalized to annual hours and used on the proposal when a contract duration uses **contract hours** labour mode.
+
 On the **Proposal** page, if a product has more than one offer, a **Supplier** column appears: pick the source per line, or use bulk actions (**Preferred**, **Cheapest price**, **Fastest delivery**, **Best payment terms**). **Save calculation** stores the chosen `ProductSupplier` on each line and recomputes the unit price server-side from the catalog (do not trust client-submitted prices for products). **Orders** group lines by the supplier chosen on the proposal line when set.
 
 If you load a saved proposal where the same simple product appeared on multiple lines with **different** suppliers, quantities are merged into one row on the editor: the **first** line’s supplier is kept (limitation).

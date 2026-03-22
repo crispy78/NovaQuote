@@ -22,17 +22,19 @@
     {% block extrahead %}{% endblock %}
 </head>
 <body class="antialiased" style="background-color: var(--nq-page-bg); color: var(--nq-ink);">
+<a href="#main-content" class="nq-skip-link">{% trans "Skip to main content" %}</a>
 <div class="min-h-screen flex flex-col">
-    <!-- Main header -->
+    <!-- Main header (compact on small screens; full nav from lg) -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-50 py-2">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between min-h-32">
-                <a href="{% url 'pricelist:home' %}" class="flex items-center gap-3 shrink-0">
-                    <img src="{{ general_settings_logo_url }}" alt="{{ general_settings.site_name|default:'NovaQuote' }}" class="logo-header">
-                    <span class="font-semibold text-brand text-2xl hidden sm:inline">{{ general_settings.site_name|default:"NovaQuote" }}</span>
+            <div class="flex items-center justify-between gap-3 min-h-14 sm:min-h-20 lg:min-h-28">
+                <a href="{% url 'pricelist:home' %}" class="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
+                    <img src="{{ general_settings_logo_url }}" alt="{{ general_settings.site_name|default:'NovaQuote' }}" class="logo-header" width="200" height="120" decoding="async">
+                    <span class="font-semibold text-brand text-lg sm:text-xl lg:text-2xl truncate hidden sm:inline">{{ general_settings.site_name|default:"NovaQuote" }}</span>
                 </a>
 
-                <nav class="flex items-center gap-1 sm:gap-2">
+                <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+                <nav class="hidden lg:flex items-center gap-1 sm:gap-2" aria-label="{% trans 'Primary navigation' %}">
                     {% if frontend_capabilities.access_price_list %}
                     <!-- Price list dropdown -->
                     <div class="relative" id="nav-price-list">
@@ -270,7 +272,7 @@
                     {% endif %}
 
                     {% if user.is_authenticated %}
-                    <div class="flex items-center gap-2 pl-2 ml-2 border-l border-slate-200">
+                    <div class="hidden lg:flex items-center gap-2 pl-2 ml-2 border-l border-slate-200">
                         <span class="text-xs text-slate-500 max-w-[8rem] truncate hidden sm:inline" title="{{ user.get_username }}">{{ user.get_username }}</span>
                         <form method="post" action="{% url 'logout' %}" class="inline m-0">
                             {% csrf_token %}
@@ -281,11 +283,94 @@
                     </div>
                     {% endif %}
                 </nav>
+                <button type="button" id="nq-mobile-nav-open" class="lg:hidden inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2" aria-expanded="false" aria-controls="nq-mobile-nav-panel" aria-label="{% trans 'Open menu' %}">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+                </div>
             </div>
         </div>
     </header>
 
-    <main class="flex-1">
+    <div id="nq-mobile-nav-panel" class="fixed inset-0 z-[100] lg:hidden hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="nq-mobile-nav-title">
+        <div class="absolute inset-0 bg-slate-900/50" id="nq-mobile-nav-backdrop"></div>
+        <div class="absolute right-0 top-0 flex h-full w-full max-w-sm flex-col bg-white shadow-2xl" id="nq-mobile-nav-sheet">
+            <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+                <span id="nq-mobile-nav-title" class="text-lg font-semibold text-slate-900">{% trans "Menu" %}</span>
+                <button type="button" id="nq-mobile-nav-close" class="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]" aria-label="{% trans 'Close menu' %}">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <nav class="flex-1 overflow-y-auto px-4 py-4 text-sm" aria-label="{% trans 'Mobile navigation' %}">
+                {% if frontend_capabilities.access_price_list %}
+                <div class="mb-6">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{% trans "Price list" %}</p>
+                    <ul class="mt-2 space-y-1">
+                        <li><a href="{% url 'pricelist:price_list_products' %}" class="block rounded-lg px-3 py-2 text-slate-800 hover:bg-slate-50">{% trans "Browse products" %}</a></li>
+                        <li><a href="{% url 'pricelist:price_list_combinations' %}" class="block rounded-lg px-3 py-2 text-slate-800 hover:bg-slate-50">{% trans "Combinations" %}</a></li>
+                    </ul>
+                </div>
+                {% endif %}
+                {% if frontend_capabilities.access_catalog %}
+                <div class="mb-6">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{% trans "Catalog (edit)" %}</p>
+                    <ul class="mt-2 space-y-1">
+                        <li><a href="{% url 'pricelist:catalog_product_list' %}" class="block rounded-lg px-3 py-2 text-slate-800 hover:bg-slate-50">{% trans "Products" %}</a></li>
+                        <li><a href="{% url 'pricelist:catalog_combination_list' %}" class="block rounded-lg px-3 py-2 text-slate-800 hover:bg-slate-50">{% trans "Combinations" %}</a></li>
+                        <li><a href="{% url 'pricelist:catalog_category_list' %}" class="block rounded-lg px-3 py-2 text-slate-800 hover:bg-slate-50">{% trans "Categories" %}</a></li>
+                        <li><a href="{% url 'pricelist:catalog_profit_profile_list' %}" class="block rounded-lg px-3 py-2 text-slate-800 hover:bg-slate-50">{% trans "Profit profiles" %}</a></li>
+                        <li><a href="{% url 'pricelist:catalog_image_list' %}" class="block rounded-lg px-3 py-2 text-slate-800 hover:bg-slate-50">{% trans "Image library" %}</a></li>
+                    </ul>
+                </div>
+                {% endif %}
+                {% if frontend_capabilities.access_contacts %}
+                <div class="mb-6">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{% trans "Contacts" %}</p>
+                    <ul class="mt-2 space-y-1">
+                        <li><a href="{% url 'pricelist:contacts_suppliers' %}" class="block rounded-lg px-3 py-2 text-slate-800 hover:bg-slate-50">{% trans "Suppliers" %}</a></li>
+                        <li><a href="{% url 'pricelist:contacts_clients' %}" class="block rounded-lg px-3 py-2 text-slate-800 hover:bg-slate-50">{% trans "Clients" %}</a></li>
+                        <li><a href="{% url 'pricelist:contacts_leads' %}" class="block rounded-lg px-3 py-2 text-slate-800 hover:bg-slate-50">{% trans "Leads" %}</a></li>
+                        <li><a href="{% url 'pricelist:contacts_network' %}" class="block rounded-lg px-3 py-2 text-slate-800 hover:bg-slate-50">{% trans "Network" %}</a></li>
+                        <li><a href="{% url 'pricelist:contacts_persons' %}" class="block rounded-lg px-3 py-2 text-slate-800 hover:bg-slate-50">{% trans "Persons" %}</a></li>
+                    </ul>
+                </div>
+                {% endif %}
+                {% if frontend_capabilities.access_proposals %}
+                <div class="mb-6">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{% trans "Proposal" %}</p>
+                    <ul class="mt-2 space-y-1">
+                        <li><a href="{% url 'pricelist:proposal' %}" class="block rounded-lg px-3 py-2 text-slate-800 hover:bg-slate-50">{% trans "New proposal" %}</a></li>
+                        <li><a href="{% url 'pricelist:contract_duration_list' %}" class="block rounded-lg px-3 py-2 text-slate-800 hover:bg-slate-50">{% trans "Contract durations" %}</a></li>
+                        <li><a href="{% url 'pricelist:proposal_list' %}" class="block rounded-lg px-3 py-2 text-slate-800 hover:bg-slate-50">{% trans "Saved calculations" %}</a></li>
+                    </ul>
+                </div>
+                {% endif %}
+                {% if frontend_capabilities.access_invoicing %}
+                <div class="mb-6">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{% trans "Invoicing" %}</p>
+                    <ul class="mt-2 space-y-1">
+                        <li><a href="{% url 'pricelist:invoice_list' %}" class="block rounded-lg px-3 py-2 text-slate-800 hover:bg-slate-50">{% trans "Invoices" %}</a></li>
+                    </ul>
+                </div>
+                {% endif %}
+                {% if frontend_capabilities.access_orders %}
+                <div class="mb-2">
+                    <a href="{% url 'pricelist:order_list' %}" class="block rounded-lg px-3 py-2 font-medium text-slate-800 hover:bg-slate-50">{% trans "Orders" %}</a>
+                </div>
+                {% endif %}
+            </nav>
+            {% if user.is_authenticated %}
+            <div class="border-t border-slate-200 p-4">
+                <p class="mb-2 truncate text-xs text-slate-500" title="{{ user.get_username }}">{{ user.get_username }}</p>
+                <form method="post" action="{% url 'logout' %}" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">{% trans "Log out" %}</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <main id="main-content" tabindex="-1" class="flex-1 outline-none">
         {% if messages %}
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 space-y-2" role="alert">
             {% for message in messages %}
@@ -300,6 +385,41 @@
 </div>
 
 <script>
+(function() {
+    var openBtn = document.getElementById('nq-mobile-nav-open');
+    var panel = document.getElementById('nq-mobile-nav-panel');
+    var closeBtn = document.getElementById('nq-mobile-nav-close');
+    var backdrop = document.getElementById('nq-mobile-nav-backdrop');
+    if (!openBtn || !panel) return;
+    function openNav() {
+        panel.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+        openBtn.setAttribute('aria-expanded', 'true');
+        panel.setAttribute('aria-hidden', 'false');
+    }
+    function closeNav() {
+        panel.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        openBtn.setAttribute('aria-expanded', 'false');
+        panel.setAttribute('aria-hidden', 'true');
+        try {
+            openBtn.focus();
+        } catch (e) {}
+    }
+    openBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        openNav();
+    });
+    if (closeBtn) closeBtn.addEventListener('click', closeNav);
+    if (backdrop) backdrop.addEventListener('click', closeNav);
+    panel.querySelectorAll('a').forEach(function(a) {
+        a.addEventListener('click', closeNav);
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && panel && !panel.classList.contains('hidden')) closeNav();
+    });
+})();
+
 (function() {
     var container = document.getElementById('nav-price-list');
     var trigger = container && container.querySelector('.nav-dropdown-trigger');

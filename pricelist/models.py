@@ -947,6 +947,7 @@ class Product(models.Model):
 
         return sales_price_from_cost_and_profile(cost, self.profit_profile)
 
+    @property
     def annual_contract_hours(self) -> Decimal | None:
         """Hours per calendar year from contract_hours + period, or None if not configured."""
         if self.contract_hours is None or not (self.contract_hours_period or "").strip():

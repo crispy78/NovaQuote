@@ -3,7 +3,7 @@
  * page background #FDFBF2, ink #4D3B2A, brand gold #C19A6B, hover brown #8B6F52, olive accent #7E855C.
  * See :root in pricelist/base.html and admin/base_site.html.
  */
-/* Logo in header: max size fits main nav bar (min-h-32 + header py-2) */
+/* Logo in header: smaller on phones/tablets; full size from lg up */
 .logo-header {
   max-height: 120px;
   max-width: 200px;
@@ -11,6 +11,34 @@
   height: auto;
   object-fit: contain;
   display: block;
+}
+
+@media (max-width: 1023px) {
+  .logo-header {
+    max-height: 3rem;
+    max-width: 10rem;
+  }
+}
+
+/* Skip to main content (keyboard / screen readers) */
+.nq-skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: 0.5rem;
+  z-index: 200;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--brand);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transform: translateY(-120%);
+  transition: transform 0.15s ease;
+}
+.nq-skip-link:focus {
+  transform: translateY(0);
+  outline: 2px solid color-mix(in srgb, var(--brand) 40%, #fff);
+  outline-offset: 2px;
 }
 
 /* Brand colour from General Settings (CSS vars in base.html: effective primary / hover) */

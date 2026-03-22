@@ -131,6 +131,13 @@ On the **Proposal** page, if a product has more than one offer, a **Supplier** c
 
 If you load a saved proposal where the same simple product appeared on multiple lines with **different** suppliers, quantities are merged into one row on the editor: the **first** line’s supplier is kept (limitation).
 
+## Frontend UX (overview)
+
+- **Navigation:** Desktop keeps dropdown menus; on smaller screens a **menu** button opens a slide-out panel with the same areas (price list, catalog, contacts, proposal, invoicing, orders) plus account actions.
+- **Accessibility:** **Skip to main content** link (visible on keyboard focus), `main` landmark with `id="main-content"`, smaller header/logo on narrow viewports.
+- **Catalog vs price list:** Catalog list/edit pages show a short **staff** notice; the price list shows a hint for users who can edit the catalog.
+- **Proposal:** Line items use alternating row backgrounds and a scrollable area (medium+ viewports) with a **sticky** table header; **maintenance contract options** are in an expandable section (open by default).
+
 ## Main user flows
 - Price list + product detail
 - Create and save proposals (quotes)
